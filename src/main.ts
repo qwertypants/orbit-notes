@@ -11,7 +11,7 @@ import {
   type TopicId,
   type TopicSelection,
 } from './theory/music-theory.ts'
-import { mountNoteCircle } from './visualization/note-circle.ts'
+import type { NoteCircle } from './visualization/note-circle.ts'
 import type { PlaybackMode } from './audio/audio-engine.ts'
 import { createLearningSummary } from './theory/learning-summary.ts'
 
@@ -106,6 +106,9 @@ const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
 type AudioModule = typeof import('./audio/audio-engine.ts')
 let audioModulePromise: Promise<AudioModule> | undefined
 let playRequest = 0
+let circle: NoteCircle | undefined
+let spectrumReader: (() => Float32Array | undefined) | undefined
+let pageHidden = false
 
 function audioModule(): Promise<AudioModule> {
   audioModulePromise ??= import('./audio/audio-engine.ts').catch((error: unknown) => {
@@ -118,6 +121,8 @@ function audioModule(): Promise<AudioModule> {
 function stopCurrentPlayback(message?: string): void {
   playRequest += 1
   playButton.disabled = false
+  spectrumReader = undefined
+  circle?.stopSpectrum()
   if (audioModulePromise) void audioModulePromise.then(({ stopPlayback }) => stopPlayback()).catch(() => {})
   if (message) audioStatus.textContent = message
 }
@@ -152,11 +157,11 @@ function topicSelection(): TopicSelection {
 
 populatePresets()
 let explorerState = createExplorerState(topicSelection())
-const circle = mountNoteCircle(circleHost, explorerState, (note) => {
+function toggleCircleNote(note: PitchClass): void {
   explorerState = toggleExplorerNote(explorerState, note)
   stopCurrentPlayback('Selection changed. Press Play to hear it.')
   renderSelection()
-})
+}
 
 function renderSelection(): void {
   const active = new Set(explorerState.activeNotes)
@@ -178,7 +183,7 @@ function renderSelection(): void {
   circleDescription.textContent = `${topicName} circle, root ${noteName(root, 'flat')}. Selected notes: ${activeNames}. Use the note buttons to change the selection.`
   selectionStatus.textContent = `Selected notes: ${activeNames}.`
   renderTheoryPanel()
-  circle.update(explorerState)
+  circle?.update(explorerState)
 }
 
 function renderTheoryPanel(): void {
@@ -221,21 +226,34 @@ noteButtons.addEventListener('click', (event) => {
 
 renderSelection()
 
+// The large p5 module loads after controls and note buttons are usable.
+void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
+  if (pageHidden) return
+  circle = mountNoteCircle(circleHost, explorerState, toggleCircleNote)
+  circle.update(explorerState)
+  if (spectrumReader) circle.startSpectrum(spectrumReader)
+}).catch(() => {
+  audioStatus.textContent = 'The note circle could not load. Use the note buttons to explore.'
+})
+
 playButton.addEventListener('click', async () => {
   const notes = activeNotesInOrder(explorerState)
   if (notes.length === 0) {
     audioStatus.textContent = 'Choose at least one note before playing.'
     return
   }
+  stopCurrentPlayback()
   const request = ++playRequest
   playButton.disabled = true
   audioStatus.textContent = 'Waking up the sound…'
   try {
     const mode: PlaybackMode = document.querySelector<HTMLInputElement>('input[name="playback"]:checked')?.value === 'sequence' ? 'sequence' : 'together'
-    const { playNotes } = await audioModule()
+    const { playNotes, readSpectrum } = await audioModule()
     if (request !== playRequest) return
     const started = await playNotes(notes, mode)
     if (request !== playRequest || !started) return
+    spectrumReader = readSpectrum
+    circle?.startSpectrum(readSpectrum)
     const names = notes.map((note) => noteName(note, 'flat')).join(', ')
     audioStatus.textContent = `Playing ${names} ${mode === 'sequence' ? 'in a row' : 'together'}.`
   } catch {
@@ -265,7 +283,9 @@ document.querySelectorAll<HTMLInputElement>('input[name="playback"]').forEach((i
   })
 })
 
-window.addEventListener('pagehide', () => {
+window.addEventListener('pagehide', (event) => {
+  if (!event.persisted) pageHidden = true
   stopCurrentPlayback()
+  if (!event.persisted) circle?.destroy()
   if (audioModulePromise) void audioModulePromise.then(({ disposeAudio }) => disposeAudio()).catch(() => {})
 })

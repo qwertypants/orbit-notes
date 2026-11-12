@@ -1,6 +1,7 @@
 import p5 from 'p5'
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
 import { circleOfFifths, noteName, type PitchClass } from '../theory/music-theory.ts'
+import { spectrumLevels } from './spectrum.ts'
 
 const chromaticOrder = Array.from({ length: 12 }, (_, index) => index as PitchClass)
 
@@ -8,6 +9,8 @@ type Point = { x: number; y: number }
 
 export type NoteCircle = {
   update(state: ExplorerState): void
+  startSpectrum(read: () => Float32Array | undefined): void
+  stopSpectrum(): void
   destroy(): void
 }
 
@@ -19,6 +22,11 @@ export function mountNoteCircle(
   let state = initialState
   let canvasSize = 1
   let observer: ResizeObserver | undefined
+  let readSpectrum: (() => Float32Array | undefined) | undefined
+  let spectrum: number[] = spectrumLevels(undefined)
+  let visualizing = false
+  let silentFrames = 0
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
   const sketchInstance = new p5((sketch) => {
     function order(): readonly PitchClass[] {
@@ -28,7 +36,7 @@ export function mountNoteCircle(
     function point(note: PitchClass): Point {
       const index = order().indexOf(note)
       const angle = (index / 12) * sketch.TWO_PI - sketch.HALF_PI
-      const radius = canvasSize * 0.37
+      const radius = canvasSize * 0.34
       return {
         x: canvasSize / 2 + Math.cos(angle) * radius,
         y: canvasSize / 2 + Math.sin(angle) * radius,
@@ -51,6 +59,23 @@ export function mountNoteCircle(
       sketch.line(a.x, a.y, b.x, b.y)
     }
 
+    function drawSpectrum(): void {
+      const center = canvasSize / 2
+      const innerRadius = canvasSize * 0.425
+      spectrum.forEach((level, index) => {
+        const angle = (index / spectrum.length) * sketch.TWO_PI - sketch.HALF_PI
+        const outerRadius = innerRadius + canvasSize * (0.01 + level * 0.045)
+        sketch.stroke(`hsla(${(index / spectrum.length) * 360 + 20}, 88%, 68%, ${0.3 + level * 0.55})`)
+        sketch.strokeWeight(Math.max(1.5, canvasSize * 0.004))
+        sketch.line(
+          center + Math.cos(angle) * innerRadius,
+          center + Math.sin(angle) * innerRadius,
+          center + Math.cos(angle) * outerRadius,
+          center + Math.sin(angle) * outerRadius,
+        )
+      })
+    }
+
     sketch.setup = () => {
       const canvas = sketch.createCanvas(1, 1)
       canvas.parent(host)
@@ -68,6 +93,7 @@ export function mountNoteCircle(
       })
       sketch.textFont('system-ui, sans-serif')
       sketch.textAlign(sketch.CENTER, sketch.CENTER)
+      sketch.frameRate(30)
       sketch.noLoop()
       observer = new ResizeObserver(resize)
       observer.observe(host)
@@ -75,16 +101,27 @@ export function mountNoteCircle(
     }
 
     sketch.draw = () => {
+      if (visualizing && !reducedMotion.matches) {
+        spectrum = spectrumLevels(readSpectrum?.())
+        silentFrames = spectrum.some((level) => level > 0.025) ? 0 : silentFrames + 1
+        if (silentFrames > 18) {
+          visualizing = false
+          readSpectrum = undefined
+          spectrum = spectrumLevels(undefined)
+          sketch.noLoop()
+        }
+      }
       const selected = new Set(state.activeNotes)
       const activeOrder = activeNotesInOrder(state)
       const topic = state.selection.topic
       const root = state.selection.root
 
       sketch.clear()
+      drawSpectrum()
       sketch.noFill()
       sketch.stroke('rgba(226, 225, 255, 0.17)')
       sketch.strokeWeight(1.5)
-      sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.74)
+      sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.68)
 
       if (topic === 'fifths') {
         state.resolved.links.forEach(({ from, to }) => {
@@ -121,6 +158,12 @@ export function mountNoteCircle(
         sketch.strokeWeight(isRoot ? 3 : isSelected ? 2 : 1)
         sketch.fill(isSelected ? (isRoot ? '#fbbf77' : `hsl(${hue} 56% 25%)`) : isPatternNote ? '#272a3a' : '#1b1d2b')
         sketch.circle(x, y, radius * 2)
+        if (isRoot) {
+          sketch.noFill()
+          sketch.stroke('#ffd092')
+          sketch.strokeWeight(1.5)
+          sketch.circle(x, y, radius * 2 + 8)
+        }
         sketch.noStroke()
         sketch.fill(isSelected && isRoot ? '#1e1623' : isSelected ? '#ffffff' : isPatternNote ? '#c8c8d8' : '#8a8da2')
         sketch.textSize(Math.max(12, canvasSize * 0.04))
@@ -130,12 +173,35 @@ export function mountNoteCircle(
     }
   }, host)
 
+  const onMotionChange = () => {
+    if (reducedMotion.matches) sketchInstance.noLoop()
+    else if (visualizing) sketchInstance.loop()
+    sketchInstance.redraw()
+  }
+  reducedMotion.addEventListener('change', onMotionChange)
+
   return {
     update(nextState) {
       state = nextState
       sketchInstance.redraw()
     },
+    startSpectrum(read) {
+      readSpectrum = read
+      spectrum = spectrumLevels(read())
+      visualizing = true
+      silentFrames = 0
+      if (reducedMotion.matches) sketchInstance.redraw()
+      else sketchInstance.loop()
+    },
+    stopSpectrum() {
+      visualizing = false
+      readSpectrum = undefined
+      spectrum = spectrumLevels(undefined)
+      sketchInstance.noLoop()
+      sketchInstance.redraw()
+    },
     destroy() {
+      reducedMotion.removeEventListener('change', onMotionChange)
       observer?.disconnect()
       sketchInstance.remove()
     },

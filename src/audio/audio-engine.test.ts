@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { activeNotesInOrder, createExplorerState, toggleExplorerNote } from '../explorer-state.ts'
-import { disposeAudio, playNotes, stopPlayback } from './audio-engine.ts'
+import { disposeAudio, playNotes, readSpectrum, stopPlayback } from './audio-engine.ts'
 
 const audio = vi.hoisted(() => ({
   start: vi.fn<() => Promise<void>>(),
@@ -8,6 +8,10 @@ const audio = vi.hoisted(() => ({
   release: vi.fn(),
   dispose: vi.fn(),
   construct: vi.fn(),
+  connect: vi.fn(),
+  analyserConstruct: vi.fn(),
+  analyserDispose: vi.fn(),
+  spectrumValue: new Float32Array([-80, -40]),
 }))
 
 vi.mock('tone', () => ({
@@ -15,10 +19,16 @@ vi.mock('tone', () => ({
   Synth: class {},
   PolySynth: class {
     constructor(...args: unknown[]) { audio.construct(...args) }
-    toDestination() { return this }
+    connect(...args: unknown[]) { audio.connect(...args); return this }
     triggerAttackRelease(...args: unknown[]) { audio.trigger(...args); return this }
     releaseAll() { audio.release(); return this }
     dispose() { audio.dispose(); return this }
+  },
+  Analyser: class {
+    constructor(...args: unknown[]) { audio.analyserConstruct(...args) }
+    toDestination() { return this }
+    getValue() { return audio.spectrumValue }
+    dispose() { audio.analyserDispose(); return this }
   },
 }))
 
@@ -114,7 +124,16 @@ describe('selected-note playback', () => {
     await playNotes([0], 'together')
     disposeAudio()
     expect(audio.dispose).toHaveBeenCalledOnce()
+    expect(audio.analyserDispose).toHaveBeenCalledOnce()
     await playNotes([7], 'together')
     expect(audio.construct).toHaveBeenCalledTimes(2)
+  })
+
+  it('routes the audible synth through a live FFT analyser', async () => {
+    expect(readSpectrum()).toBeUndefined()
+    await playNotes([0, 4, 7], 'together')
+    expect(audio.analyserConstruct).toHaveBeenCalledWith({ type: 'fft', size: 128, smoothing: 0.8 })
+    expect(audio.connect).toHaveBeenCalledOnce()
+    expect(readSpectrum()).toBe(audio.spectrumValue)
   })
 })

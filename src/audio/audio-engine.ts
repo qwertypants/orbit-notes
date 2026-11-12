@@ -7,6 +7,7 @@ const toneNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', '
 const sequenceStepMs = 280
 
 let synth: Tone.PolySynth<Tone.Synth> | undefined
+let analyser: Tone.Analyser | undefined
 let pendingNotes: ReturnType<typeof setTimeout>[] = []
 let playbackVersion = 0
 
@@ -22,12 +23,23 @@ function notesAboveRoot(notes: readonly PitchClass[]): string[] {
 }
 
 function instrument(): Tone.PolySynth<Tone.Synth> {
-  synth ??= new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'triangle' },
-    envelope: { attack: 0.02, decay: 0.1, sustain: 0.55, release: 0.3 },
-    volume: -12,
-  }).toDestination()
+  if (!synth) {
+    analyser = new Tone.Analyser({ type: 'fft', size: 128, smoothing: 0.8 })
+    synth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.02, decay: 0.1, sustain: 0.55, release: 0.3 },
+      volume: -12,
+    })
+    synth.connect(analyser)
+    analyser.toDestination()
+  }
   return synth
+}
+
+/** The analyser follows the audible synth path. Silence is available before audio starts. */
+export function readSpectrum(): Float32Array | undefined {
+  const values = analyser?.getValue()
+  return values instanceof Float32Array ? values : undefined
 }
 
 /** Cancel pending notes and release voices already sounding. */
@@ -68,4 +80,6 @@ export function disposeAudio(): void {
   stopPlayback()
   synth?.dispose()
   synth = undefined
+  analyser?.dispose()
+  analyser = undefined
 }
