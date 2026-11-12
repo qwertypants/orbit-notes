@@ -73,4 +73,17 @@ describe('createLearningSummary', () => {
       '♭3 · E♭ — minor third from C',
     ])
   })
+
+  it('preserves a retained preset degree when another chord tone is removed', () => {
+    let state = createExplorerState({ topic: 'chords', root, preset: 'augmented' })
+    state = toggleExplorerNote(state, parseNoteName('E'))
+    const summary = createLearningSummary(state)
+
+    expect(summary.title).toBe('Custom notes around C')
+    expect(summary.selectedNotes).toBe('C, G♯')
+    expect(summary.relationships).toEqual([
+      '1 · C — root from C',
+      '♯5 · G♯ — augmented fifth from C',
+    ])
+  })
 })

@@ -80,11 +80,13 @@ export function createLearningSummary(state: ExplorerState): LearningSummary {
   const isCustom = activeNotes.length !== patternNotes.length || activeNotes.some((note) => !patternNotes.some((pattern) => pattern.pitchClass === note))
   const notes = isCustom
     ? activeNotes.map((pitchClass) => {
+      const retainedPatternNote = patternNotes.find((note) => note.pitchClass === pitchClass)
+      if (retainedPatternNote) return retainedPatternNote
       const semitones = (pitchClass - state.selection.root + 12) % 12
       return { pitchClass, degree: customDegrees[semitones], interval: customIntervals[semitones] }
     })
     : patternNotes
-  const namedNotes = notes.map((note) => ({ ...note, name: spellDegree(root, note.degree, note.pitchClass) }))
+  const namedNotes = notes.map((note) => ({ ...note, name: noteLabelForState(state, note.pitchClass) }))
   const selectedNotes = namedNotes.map((note) => note.name).join(', ') || 'None selected'
   const relationships = namedNotes.map((note) => `${note.degree} · ${note.name} — ${intervalNames[note.interval] ?? note.interval} from ${root}`)
 
