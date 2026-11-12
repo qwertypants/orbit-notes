@@ -30,21 +30,22 @@ self.addEventListener('fetch', (event) => {
           .then(() => response)
       }
       return response
-    }).catch(async () => (await caches.match(request)) || (await caches.match(APP_INDEX)))
+    }).catch(async () => (await caches.match(request)) || (await caches.match(APP_INDEX))))
     return
   }
 
   if (!['script', 'style', 'image', 'font', 'manifest'].includes(request.destination)) return
-  event.respondWith(caches.match(request).then((cached) => {
-    if (cached) return cached
-    return fetch(request).then((response) => {
-      if (response.ok) {
-        return caches.open(CACHE_NAME)
-          .then((cache) => cache.put(request, response.clone()))
-          .catch(() => {})
-          .then(() => response)
-      }
-      return response
-    })
-  }))
+  event.respondWith(
+    fetch(request, { cache: 'no-cache' })
+      .then((response) => {
+        if (response.ok) {
+          return caches.open(CACHE_NAME)
+            .then((cache) => cache.put(request, response.clone()))
+            .catch(() => {})
+            .then(() => response)
+        }
+        return response
+      })
+      .catch(async () => (await caches.match(request)) || Response.error()),
+  )
 })
