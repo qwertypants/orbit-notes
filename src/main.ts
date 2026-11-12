@@ -26,17 +26,14 @@ app.innerHTML = `
       <span class="topbar-note">A space to hear how notes fit</span>
     </header>
 
-    <section class="intro" aria-labelledby="page-title">
-      <p class="eyebrow">PLAY WITH MUSIC THEORY</p>
-      <h1 id="page-title">Find your <span>sound.</span></h1>
-      <p class="intro-copy">Pick a starting point. Follow the notes wherever they take you.</p>
-    </section>
-
     <section class="explorer" aria-label="Music theory explorer">
       <div class="circle-wrap">
         <div id="note-circle" class="note-circle" role="img" aria-label="Interactive note circle" aria-describedby="circle-description">
           <p class="sr-only" id="circle-description"></p>
         </div>
+        <button id="circle-play-button" class="circle-play-button" type="button" aria-label="Play selected notes" title="Play selected notes">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" /></svg>
+        </button>
         <div class="circle-caption" aria-hidden="true"><span class="caption-dot"></span> TWELVE NOTES · ENDLESS CONNECTIONS</div>
       </div>
 
@@ -95,6 +92,7 @@ const rootSelect = document.querySelector<HTMLSelectElement>('#root-select')!
 const presetField = document.querySelector<HTMLLabelElement>('#preset-field')!
 const presetSelect = document.querySelector<HTMLSelectElement>('#preset-select')!
 const playButton = document.querySelector<HTMLButtonElement>('#play-button')!
+const circlePlayButton = document.querySelector<HTMLButtonElement>('#circle-play-button')!
 const stopButton = document.querySelector<HTMLButtonElement>('#stop-button')!
 const audioStatus = document.querySelector<HTMLParagraphElement>('#audio-status')!
 const selectionStatus = document.querySelector<HTMLParagraphElement>('#selection-status')!
@@ -121,6 +119,7 @@ function audioModule(): Promise<AudioModule> {
 function stopCurrentPlayback(message?: string): void {
   playRequest += 1
   playButton.disabled = false
+  circlePlayButton.disabled = false
   spectrumReader = undefined
   circle?.stopSpectrum()
   if (audioModulePromise) void audioModulePromise.then(({ stopPlayback }) => stopPlayback()).catch(() => {})
@@ -245,6 +244,7 @@ playButton.addEventListener('click', async () => {
   stopCurrentPlayback()
   const request = ++playRequest
   playButton.disabled = true
+  circlePlayButton.disabled = true
   audioStatus.textContent = 'Waking up the sound…'
   try {
     const mode: PlaybackMode = document.querySelector<HTMLInputElement>('input[name="playback"]:checked')?.value === 'sequence' ? 'sequence' : 'together'
@@ -259,9 +259,14 @@ playButton.addEventListener('click', async () => {
   } catch {
     if (request === playRequest) audioStatus.textContent = 'Sound could not start. Tap Play to try again.'
   } finally {
-    if (request === playRequest) playButton.disabled = false
+    if (request === playRequest) {
+      playButton.disabled = false
+      circlePlayButton.disabled = false
+    }
   }
 })
+
+circlePlayButton.addEventListener('click', () => playButton.click())
 
 stopButton.addEventListener('click', () => {
   stopCurrentPlayback('Playback stopped.')
