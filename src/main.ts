@@ -38,15 +38,15 @@ app.innerHTML = `
       </div>
 
       <div class="controls" aria-label="Explorer controls">
-        <label class="control-field">
+        <div class="control-field explore-field">
           <span class="control-label">Explore</span>
-          <select id="topic-select" aria-label="Choose a music topic">
-            <option value="chords">Chords</option>
-            <option value="scales">Scales</option>
-            <option value="arpeggios">Arpeggios</option>
-            <option value="fifths">Circle of fifths</option>
-          </select>
-        </label>
+          <div id="topic-buttons" class="topic-buttons" role="group" aria-label="Choose a music topic">
+            <button class="topic-button" type="button" data-topic="chords" aria-pressed="true">Chords</button>
+            <button class="topic-button" type="button" data-topic="scales" aria-pressed="false">Scales</button>
+            <button class="topic-button" type="button" data-topic="arpeggios" aria-pressed="false">Arpeggios</button>
+            <button class="topic-button" type="button" data-topic="fifths" aria-pressed="false">Fifths</button>
+          </div>
+        </div>
         <label class="control-field">
           <span class="control-label">Start on</span>
           <select id="root-select" aria-label="Choose a root note">
@@ -68,7 +68,6 @@ app.innerHTML = `
         </fieldset>
         <div class="playback-buttons">
           <button id="play-button" class="play-button" type="button"><span aria-hidden="true">▶</span> Play</button>
-          <button id="stop-button" class="stop-button" type="button">Stop</button>
         </div>
         <fieldset class="note-picker">
           <legend class="control-label">Notes · tap to change the shape</legend>
@@ -87,13 +86,14 @@ app.innerHTML = `
   </main>
 `
 
-const topicSelect = document.querySelector<HTMLSelectElement>('#topic-select')!
+const topicButtons = document.querySelector<HTMLDivElement>('#topic-buttons')!
 const rootSelect = document.querySelector<HTMLSelectElement>('#root-select')!
 const presetField = document.querySelector<HTMLLabelElement>('#preset-field')!
 const presetSelect = document.querySelector<HTMLSelectElement>('#preset-select')!
 const playButton = document.querySelector<HTMLButtonElement>('#play-button')!
 const circlePlayButton = document.querySelector<HTMLButtonElement>('#circle-play-button')!
-const stopButton = document.querySelector<HTMLButtonElement>('#stop-button')!
+const togetherInput = document.querySelector<HTMLInputElement>('input[name="playback"][value="together"]')!
+const sequenceInput = document.querySelector<HTMLInputElement>('input[name="playback"][value="sequence"]')!
 const audioStatus = document.querySelector<HTMLParagraphElement>('#audio-status')!
 const selectionStatus = document.querySelector<HTMLParagraphElement>('#selection-status')!
 const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-description')!
@@ -107,6 +107,7 @@ let playRequest = 0
 let circle: NoteCircle | undefined
 let spectrumReader: (() => Float32Array | undefined) | undefined
 let pageHidden = false
+let activeTopic: TopicId = 'chords'
 
 function audioModule(): Promise<AudioModule> {
   audioModulePromise ??= import('./audio/audio-engine.ts').catch((error: unknown) => {
@@ -127,8 +128,27 @@ function stopCurrentPlayback(message?: string): void {
 }
 
 function selectedTopic(): TopicId {
-  const topic = topicSelect.value
-  return topic === 'scales' || topic === 'arpeggios' || topic === 'fifths' ? topic : 'chords'
+  return activeTopic
+}
+
+function topicName(topic: TopicId): string {
+  switch (topic) {
+    case 'chords': return 'Chords'
+    case 'scales': return 'Scales'
+    case 'arpeggios': return 'Arpeggios'
+    case 'fifths': return 'Circle of fifths'
+  }
+}
+
+function syncPlaybackChoice(resetForTopic = false): void {
+  const topic = selectedTopic()
+  if (resetForTopic) {
+    const defaultMode = topic === 'chords' ? 'together' : 'sequence'
+    togetherInput.checked = defaultMode === 'together'
+    sequenceInput.checked = defaultMode === 'sequence'
+  }
+  togetherInput.disabled = topic === 'arpeggios'
+  if (topic === 'arpeggios') sequenceInput.checked = true
 }
 
 function populatePresets(): void {
@@ -155,6 +175,7 @@ function topicSelection(): TopicSelection {
 }
 
 populatePresets()
+syncPlaybackChoice()
 let explorerState = createExplorerState(topicSelection())
 function toggleCircleNote(note: PitchClass): void {
   explorerState = toggleExplorerNote(explorerState, note)
@@ -178,8 +199,8 @@ function renderSelection(): void {
     return button
   }))
   const activeNames = activeNotesInOrder(explorerState).map((note) => noteLabelForState(explorerState, note)).join(', ') || 'none'
-  const topicName = topicSelect.options[topicSelect.selectedIndex].text
-  circleDescription.textContent = `${topicName} circle, root ${noteName(root, 'flat')}. Selected notes: ${activeNames}. Use the note buttons to change the selection.`
+  const selectedTopicName = topicName(selectedTopic())
+  circleDescription.textContent = `${selectedTopicName} circle, root ${noteName(root, 'flat')}. Selected notes: ${activeNames}. Use the note buttons to change the selection.`
   selectionStatus.textContent = `Selected notes: ${activeNames}.`
   renderTheoryPanel()
   circle?.update(explorerState)
@@ -247,7 +268,7 @@ playButton.addEventListener('click', async () => {
   circlePlayButton.disabled = true
   audioStatus.textContent = 'Waking up the sound…'
   try {
-    const mode: PlaybackMode = document.querySelector<HTMLInputElement>('input[name="playback"]:checked')?.value === 'sequence' ? 'sequence' : 'together'
+    const mode: PlaybackMode = selectedTopic() === 'arpeggios' || sequenceInput.checked ? 'sequence' : 'together'
     const { playNotes, readSpectrum } = await audioModule()
     if (request !== playRequest) return
     const started = await playNotes(notes, mode, explorerState.selection.topic === 'fifths' ? 'within-octave' : 'ascending')
@@ -268,14 +289,19 @@ playButton.addEventListener('click', async () => {
 
 circlePlayButton.addEventListener('click', () => playButton.click())
 
-stopButton.addEventListener('click', () => {
-  stopCurrentPlayback('Playback stopped.')
-})
-
-topicSelect.addEventListener('change', () => {
+topicButtons.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-topic]')
+  if (!button) return
+  const topic = button.dataset.topic as TopicId
+  if (topic === activeTopic) return
+  activeTopic = topic
+  topicButtons.querySelectorAll<HTMLButtonElement>('button[data-topic]').forEach((topicButton) => {
+    topicButton.setAttribute('aria-pressed', String(topicButton === button))
+  })
   populatePresets()
+  syncPlaybackChoice(true)
   resetSelection()
-  audioStatus.textContent = `${topicSelect.options[topicSelect.selectedIndex].text} selected.`
+  audioStatus.textContent = `${topicName(topic)} selected.`
 })
 
 rootSelect.addEventListener('change', resetSelection)
