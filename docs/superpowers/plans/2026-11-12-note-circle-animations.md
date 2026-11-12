@@ -61,14 +61,14 @@ export function changedNotes(previous: readonly PitchClass[], next: readonly Pit
 }
 ```
 
-- [ ] Write tests showing `changedNotes([0, 4], [0, 7])` returns `[4, 7]`; unchanged input returns an empty array; and order does not depend on input array order.
-- [ ] Write tests showing `changedConnections([{ from: 0, to: 4 }, { from: 4, to: 7 }], [{ from: 7, to: 4 }, { from: 0, to: 7 }])` returns `{ added: [{ from: 0, to: 7 }], removed: [{ from: 0, to: 4 }], unchanged: [{ from: 4, to: 7 }] }` after canonicalizing output endpoints.
-- [ ] Write tests showing transition progress clamps before/after the interval and easing starts at 0 and ends at 1.
-- [ ] Use assertions equivalent to `expect(changedNotes([0, 4], [0, 7])).toEqual([4, 7])`, `expect(transitionProgress(100, 100, 320)).toBe(0)`, and `expect(easeOutCubic(1)).toBe(1)`.
-- [ ] Run `npm run test -- src/visualization/selection-animation.test.ts`; confirm it fails because the helpers do not exist yet.
-- [ ] Implement the four small pure helpers with no p5 or DOM dependency.
-- [ ] Re-run the focused test command and confirm it passes.
-- [ ] Commit these files as `feat: model note selection transitions`.
+- [x] Write tests showing `changedNotes([0, 4], [0, 7])` returns `[4, 7]`; unchanged input returns an empty array; and order does not depend on input array order.
+- [x] Write tests showing `changedConnections([{ from: 0, to: 4 }, { from: 4, to: 7 }], [{ from: 7, to: 4 }, { from: 0, to: 7 }])` returns `{ added: [{ from: 0, to: 7 }], removed: [{ from: 0, to: 4 }], unchanged: [{ from: 4, to: 7 }] }` after canonicalizing output endpoints.
+- [x] Write tests showing transition progress clamps before/after the interval and easing starts at 0 and ends at 1.
+- [x] Use assertions equivalent to `expect(changedNotes([0, 4], [0, 7])).toEqual([4, 7])`, `expect(transitionProgress(100, 100, 320)).toBe(0)`, and `expect(easeOutCubic(1)).toBe(1)`.
+- [x] Run `npm run test -- src/visualization/selection-animation.test.ts`; confirm it fails because the helpers do not exist yet.
+- [x] Implement the four small pure helpers with no p5 or DOM dependency.
+- [x] Re-run the focused test command and confirm it passes.
+- [x] Commit these files as `feat: model note selection transitions`.
 
 ## Task 2: Render and retire selection effects
 
@@ -83,21 +83,21 @@ export function changedNotes(previous: readonly PitchClass[], next: readonly Pit
 
 Use a local transition record with `startedAtMs`, changed notes, added/removed/unchanged links, and an optional `rippleNote`. A ripple note is present only when exactly one pitch class changed. For each frame derive eased progress from `performance.now()` and the helper functions; do not write animation values back to explorer state.
 
-- [ ] Capture the previous explorer state and visible connection list in `update`, calculate changed notes and connection diffs, and start a short 320 ms transition only when reduced motion is off and the topic is unchanged. Topic changes redraw directly so the existing topic-specific note positions/styles do not animate or drift.
-- [ ] When exactly one note changed, remember that note for one ripple. For multi-note topic/root/preset changes, animate affected note and link states without emitting multiple ripples.
-- [ ] Add a soft, low-alpha halo behind changed note circles. Fade selected halos in and deselected halos out using `easeOutCubic`; do not scale or move note circles, text, or hit areas.
-- [ ] Draw added connections from their start point to their final endpoint as progress advances; fade removed connections out; keep unchanged connections fully drawn.
-- [ ] Draw one subtle expanding, fading ripple at the changed note's fixed point; skip it when no single note changed.
-- [ ] In the p5 draw loop, continue while either the selection transition or existing audio spectrum is active. When selection motion ends, stop looping if spectrum visualization is not active; when spectrum goes silent, stop looping if no selection transition remains.
-- [ ] Under reduced motion, discard transition state and redraw the final selection once. Preserve the existing behavior when the OS motion preference changes during playback.
-- [ ] Manually review the draw lifecycle to ensure `stopSpectrum`, `startSpectrum`, `update`, and reduced-motion changes cannot leave a stale loop running or stop the spectrum loop prematurely.
-- [ ] Run `npm run test`, `npm run check`, `npm run build`, and `git diff --check`.
-- [ ] Commit as `feat: animate note selection in the circle`.
+- [x] Capture the previous explorer state and visible connection list in `update`, calculate changed notes and connection diffs, and start a short 320 ms transition only when reduced motion is off and the topic is unchanged. Topic changes redraw directly so the existing topic-specific note positions/styles do not animate or drift.
+- [x] When exactly one note changed, remember that note for one ripple. For multi-note topic/root/preset changes, animate affected note and link states without emitting multiple ripples.
+- [x] Add a soft, low-alpha halo behind changed note circles. Fade selected halos in and deselected halos out using `easeOutCubic`; do not scale or move note circles, text, or hit areas.
+- [x] Draw added connections from their start point to their final endpoint as progress advances; fade removed connections out; keep unchanged connections fully drawn.
+- [x] Draw one subtle expanding, fading ripple at the changed note's fixed point; skip it when no single note changed.
+- [x] In the p5 draw loop, continue while either the selection transition or existing audio spectrum is active. When selection motion ends, stop looping if spectrum visualization is not active; when spectrum goes silent, stop looping if no selection transition remains.
+- [x] Under reduced motion, discard transition state and redraw the final selection once. Preserve the existing behavior when the OS motion preference changes during playback.
+- [x] Manually review the draw lifecycle to ensure `stopSpectrum`, `startSpectrum`, `update`, and reduced-motion changes cannot leave a stale loop running or stop the spectrum loop prematurely.
+- [x] Run `npm run test`, `npm run check`, `npm run build`, and `git diff --check`.
+- [x] Commit as `feat: animate note selection in the circle`.
 
 ## Checkpoint: Complete
 
-- [ ] Unit tests cover helper boundaries and changed-link detection.
-- [ ] TypeScript check and production build pass.
-- [ ] Selection effects settle and leave p5 idle; playback FFT continues unchanged.
-- [ ] Reduced-motion mode redraws final state with no transition or ripple.
-- [ ] Inspect at phone and desktop widths in a browser; record any unavailable browser or physical-device checks.
+- [x] Unit tests cover helper boundaries and changed-link detection.
+- [x] TypeScript check and production build pass.
+- [x] Source review confirms selection effects settle and leave p5 idle; playback FFT continues unchanged.
+- [x] Source review confirms reduced-motion mode redraws final state with no transition or ripple.
+- [ ] Inspect rendered animations at phone and desktop widths in a browser; the browser host is unavailable in this session, so timing and visual subtlety remain unverified.
