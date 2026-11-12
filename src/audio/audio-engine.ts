@@ -1,26 +1,71 @@
 import * as Tone from 'tone'
+import type { PitchClass } from '../theory/music-theory.ts'
 
-let synth: Tone.Synth | undefined
-let sequenceTimer: number | undefined
+export type PlaybackMode = 'together' | 'sequence'
 
-export async function playPreview(note: string, inSequence: boolean): Promise<void> {
-  stopPreview()
-  await Tone.start()
-  synth ??= new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.02, release: 0.25 } }).toDestination()
+const toneNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
+const sequenceStepMs = 280
 
-  if (inSequence) {
-    const notes = [note, note, note]
-    notes.forEach((pitch, index) => synth?.triggerAttackRelease(`${pitch}4`, '8n', Tone.now() + index * 0.22))
-    sequenceTimer = window.setTimeout(() => { sequenceTimer = undefined }, 800)
-  } else {
-    synth.triggerAttackRelease(`${note}4`, '2n')
-  }
+let synth: Tone.PolySynth<Tone.Synth> | undefined
+let pendingNotes: ReturnType<typeof setTimeout>[] = []
+let playbackVersion = 0
+
+/** Place the ordered pitch classes above the root, crossing into the next octave as needed. */
+function notesAboveRoot(notes: readonly PitchClass[]): string[] {
+  let octave = 4
+  let previous = -1
+  return notes.map((pitch) => {
+    if (pitch <= previous) octave += 1
+    previous = pitch
+    return `${toneNames[pitch]}${octave}`
+  })
 }
 
-export function stopPreview(): void {
-  if (sequenceTimer !== undefined) {
-    window.clearTimeout(sequenceTimer)
-    sequenceTimer = undefined
+function instrument(): Tone.PolySynth<Tone.Synth> {
+  synth ??= new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 0.02, decay: 0.1, sustain: 0.55, release: 0.3 },
+    volume: -12,
+  }).toDestination()
+  return synth
+}
+
+/** Cancel pending notes and release voices already sounding. */
+export function stopPlayback(): void {
+  playbackVersion += 1
+  pendingNotes.forEach(clearTimeout)
+  pendingNotes = []
+  synth?.releaseAll()
+}
+
+/** Returns false if Stop or a newer Play cancelled audio startup. */
+export async function playNotes(notes: readonly PitchClass[], mode: PlaybackMode): Promise<boolean> {
+  stopPlayback()
+  if (notes.length === 0) return false
+
+  const requestVersion = playbackVersion
+  await Tone.start()
+  if (requestVersion !== playbackVersion) return false
+
+  const voice = instrument()
+  const pitches = notesAboveRoot(notes)
+  if (mode === 'together') {
+    voice.triggerAttackRelease(pitches, '2n')
+  } else {
+    voice.triggerAttackRelease(pitches[0], '8n')
+    pitches.slice(1).forEach((pitch, index) => {
+      const timer = setTimeout(() => {
+        if (requestVersion === playbackVersion) voice.triggerAttackRelease(pitch, '8n')
+      }, (index + 1) * sequenceStepMs)
+      pendingNotes.push(timer)
+    })
   }
-  synth?.triggerRelease()
+  return true
+}
+
+/** Dispose the reusable instrument when the page is left. */
+export function disposeAudio(): void {
+  stopPlayback()
+  synth?.dispose()
+  synth = undefined
 }

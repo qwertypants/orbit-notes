@@ -12,6 +12,7 @@ import {
   type TopicSelection,
 } from './theory/music-theory.ts'
 import { mountNoteCircle } from './visualization/note-circle.ts'
+import type { PlaybackMode } from './audio/audio-engine.ts'
 
 const app = document.querySelector<HTMLDivElement>('#app')
 
@@ -96,6 +97,25 @@ const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-
 const circleHost = document.querySelector<HTMLDivElement>('#note-circle')!
 const noteButtons = document.querySelector<HTMLDivElement>('#note-buttons')!
 
+type AudioModule = typeof import('./audio/audio-engine.ts')
+let audioModulePromise: Promise<AudioModule> | undefined
+let playRequest = 0
+
+function audioModule(): Promise<AudioModule> {
+  audioModulePromise ??= import('./audio/audio-engine.ts').catch((error: unknown) => {
+    audioModulePromise = undefined
+    throw error
+  })
+  return audioModulePromise
+}
+
+function stopCurrentPlayback(message?: string): void {
+  playRequest += 1
+  playButton.disabled = false
+  if (audioModulePromise) void audioModulePromise.then(({ stopPlayback }) => stopPlayback()).catch(() => {})
+  if (message) audioStatus.textContent = message
+}
+
 function selectedTopic(): TopicId {
   const topic = topicSelect.value
   return topic === 'scales' || topic === 'arpeggios' || topic === 'fifths' ? topic : 'chords'
@@ -128,6 +148,7 @@ populatePresets()
 let explorerState = createExplorerState(topicSelection())
 const circle = mountNoteCircle(circleHost, explorerState, (note) => {
   explorerState = toggleExplorerNote(explorerState, note)
+  stopCurrentPlayback('Selection changed. Press Play to hear it.')
   renderSelection()
 })
 
@@ -155,6 +176,7 @@ function renderSelection(): void {
 
 function resetSelection(): void {
   explorerState = createExplorerState(topicSelection())
+  stopCurrentPlayback('Selection changed. Press Play to hear it.')
   renderSelection()
 }
 
@@ -163,6 +185,7 @@ noteButtons.addEventListener('click', (event) => {
   if (!button) return
   const note = Number(button.dataset.note) as PitchClass
   explorerState = toggleExplorerNote(explorerState, note)
+  stopCurrentPlayback('Selection changed. Press Play to hear it.')
   renderSelection()
   noteButtons.querySelector<HTMLButtonElement>(`button[data-note="${note}"]`)?.focus()
 })
@@ -170,25 +193,31 @@ noteButtons.addEventListener('click', (event) => {
 renderSelection()
 
 playButton.addEventListener('click', async () => {
+  const notes = activeNotesInOrder(explorerState)
+  if (notes.length === 0) {
+    audioStatus.textContent = 'Choose at least one note before playing.'
+    return
+  }
+  const request = ++playRequest
   playButton.disabled = true
   audioStatus.textContent = 'Waking up the sound…'
   try {
-    const mode = document.querySelector<HTMLInputElement>('input[name="playback"]:checked')?.value
-    const { playPreview } = await import('./audio/audio-engine.ts')
-    await playPreview(rootSelect.value, mode === 'sequence')
-    audioStatus.textContent = `${rootSelect.value} preview playing ${mode === 'sequence' ? 'in a row' : 'together'}.`
+    const mode: PlaybackMode = document.querySelector<HTMLInputElement>('input[name="playback"]:checked')?.value === 'sequence' ? 'sequence' : 'together'
+    const { playNotes } = await audioModule()
+    if (request !== playRequest) return
+    const started = await playNotes(notes, mode)
+    if (request !== playRequest || !started) return
+    const names = notes.map((note) => noteName(note, 'flat')).join(', ')
+    audioStatus.textContent = `Playing ${names} ${mode === 'sequence' ? 'in a row' : 'together'}.`
   } catch {
-    audioStatus.textContent = 'Sound could not start. Tap Play to try again.'
+    if (request === playRequest) audioStatus.textContent = 'Sound could not start. Tap Play to try again.'
   } finally {
-    playButton.disabled = false
+    if (request === playRequest) playButton.disabled = false
   }
 })
 
 stopButton.addEventListener('click', () => {
-  void import('./audio/audio-engine.ts').then(({ stopPreview }) => {
-    stopPreview()
-    audioStatus.textContent = 'Playback stopped.'
-  })
+  stopCurrentPlayback('Playback stopped.')
 })
 
 topicSelect.addEventListener('change', () => {
@@ -202,6 +231,12 @@ presetSelect.addEventListener('change', resetSelection)
 
 document.querySelectorAll<HTMLInputElement>('input[name="playback"]').forEach((input) => {
   input.addEventListener('change', () => {
+    stopCurrentPlayback()
     audioStatus.textContent = `${input.value === 'sequence' ? 'In a row' : 'Together'} playback selected.`
   })
+})
+
+window.addEventListener('pagehide', () => {
+  stopCurrentPlayback()
+  if (audioModulePromise) void audioModulePromise.then(({ disposeAudio }) => disposeAudio()).catch(() => {})
 })
