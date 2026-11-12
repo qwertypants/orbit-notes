@@ -15,6 +15,12 @@ import type { NoteCircle } from './visualization/note-circle.ts'
 import type { PlaybackMode } from './audio/audio-engine.ts'
 import { createLearningSummary, noteLabelForState } from './theory/learning-summary.ts'
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch(() => {})
+  }, { once: true })
+}
+
 const app = document.querySelector<HTMLDivElement>('#app')
 
 if (!app) throw new Error('App root was not found')

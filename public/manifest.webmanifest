@@ -1,0 +1,14 @@
+{
+  "id": "/",
+  "name": "Orbit — Music Theory Explorer",
+  "short_name": "Orbit",
+  "description": "Explore music theory through a colorful, interactive circle of notes.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#10121c",
+  "theme_color": "#10121c",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
