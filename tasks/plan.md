@@ -163,10 +163,14 @@ Build a colorful, mobile-first browser tool for freely exploring music theory th
 | Continuous spectrum effects compete with note relationships | Medium | Treat spectrum as subtle feedback; keep note positions and relationship lines visually stable. |
 | “Everything” in music theory exceeds a first release | High | Deliver the core topic model and make topic data extensible; add advanced theory as later topics. |
 
-## Open questions
+## Decisions made during implementation
 
-- Which note spelling should be the default when a pitch has enharmonic names (for example, C♯ or D♭)?
-- Should the circular spectrum show live audio energy, or should the circle primarily visualize note relationships with only light playback animation?
-- Which chord/scale topics beyond common triads, seventh chords, major, and minor scales belong in the first release?
+- Use the existing flat display spelling for pitch classes, and spell named chord/scale tones from the root and diatonic degree so interval labels agree with note names.
+- Show a subtle live Tone.js FFT ring only during playback; keep note positions and relationship lines stable. Respect reduced-motion preferences with a static spectrum snapshot.
+- The initial free-exploration topics include common triads and seventh chords, major/natural-minor/pentatonic scales, arpeggios, and the circle of fifths. The topic model remains extensible for later music theory topics.
+- Fifths playback stays within one octave while keeping fifth order, so it does not climb through an impractical register.
 
-Resolve these during implementation setup or the first checkpoint; they do not block the scaffold or core theory model.
+## Verification limits
+
+- Unit tests, TypeScript checks, and production builds pass.
+- Rendered phone/desktop layout, in-browser keyboard/touch behavior, live audible playback/FFT, and physical-device behavior could not be checked because the browser host was unavailable during this implementation session.
