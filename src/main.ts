@@ -17,7 +17,7 @@ import { createLearningSummary, noteLabelForState } from './theory/learning-summ
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    void navigator.serviceWorker.register('/sw.js').catch(() => {})
+    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
   }, { once: true })
 }
 

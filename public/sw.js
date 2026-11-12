@@ -1,5 +1,7 @@
 const CACHE_NAME = 'orbit-shell-v1'
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg']
+const APP_BASE = new URL('./', self.location).pathname
+const APP_INDEX = `${APP_BASE}index.html`
+const APP_SHELL = [APP_BASE, APP_INDEX, `${APP_BASE}manifest.webmanifest`, `${APP_BASE}icon.svg`]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))
@@ -23,12 +25,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request).then((response) => {
       if (response.ok) {
         return caches.open(CACHE_NAME)
-          .then((cache) => cache.put('/index.html', response.clone()))
+          .then((cache) => cache.put(APP_INDEX, response.clone()))
           .catch(() => {})
           .then(() => response)
       }
       return response
-    }).catch(async () => (await caches.match(request)) || (await caches.match('/index.html'))))
+    }).catch(async () => (await caches.match(request)) || (await caches.match(APP_INDEX)))
     return
   }
 
