@@ -3,10 +3,42 @@ import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
 import { circleOfFifths, type PitchClass } from '../theory/music-theory.ts'
 import { noteLabelForState } from '../theory/learning-summary.ts'
 import { spectrumLevels } from './spectrum.ts'
+import { changedConnections, changedNotes, easeOutCubic, transitionProgress, type CircleLink } from './selection-animation.ts'
 
 const chromaticOrder = Array.from({ length: 12 }, (_, index) => index as PitchClass)
 
 type Point = { x: number; y: number }
+type SelectionTransition = {
+  startedAtMs: number
+  changed: ReadonlySet<PitchClass>
+  added: readonly CircleLink[]
+  removed: readonly CircleLink[]
+  unchanged: readonly CircleLink[]
+  rippleNote: PitchClass | undefined
+}
+
+const selectionDurationMs = 320
+
+function connectionKey({ from, to }: CircleLink): string {
+  return `${Math.min(from, to)}:${Math.max(from, to)}`
+}
+
+function visibleConnections(state: ExplorerState): CircleLink[] {
+  const activeOrder = activeNotesInOrder(state)
+  if (state.selection.topic === 'fifths') {
+    const selected = new Set(state.activeNotes)
+    return state.resolved.links.filter(({ from, to }) => selected.has(from) && selected.has(to))
+  }
+  if (state.selection.topic === 'chords' && activeOrder.length >= 3) {
+    return activeOrder.map((from, index) => ({ from, to: activeOrder[(index + 1) % activeOrder.length] }))
+  }
+  return activeOrder.slice(1).map((to, index) => ({ from: activeOrder[index], to }))
+}
+
+function matchingConnections(links: readonly CircleLink[], matches: readonly CircleLink[]): CircleLink[] {
+  const keys = new Set(matches.map(connectionKey))
+  return links.filter((link) => keys.has(connectionKey(link)))
+}
 
 export type NoteCircle = {
   update(state: ExplorerState): void
@@ -27,6 +59,7 @@ export function mountNoteCircle(
   let spectrum: number[] = spectrumLevels(undefined)
   let visualizing = false
   let silentFrames = 0
+  let selectionTransition: SelectionTransition | undefined
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
   const sketchInstance = new p5((sketch) => {
@@ -52,12 +85,53 @@ export function mountNoteCircle(
       sketch.redraw()
     }
 
-    function drawLink(from: PitchClass, to: PitchClass, color: string, weight: number): void {
+    function drawLink(from: PitchClass, to: PitchClass, color: string, weight: number, progress = 1, opacity = 1): void {
       const a = point(from)
       const b = point(to)
-      sketch.stroke(color)
+      const strokeColor = sketch.color(color)
+      strokeColor.setAlpha(sketch.alpha(strokeColor) * opacity)
+      sketch.stroke(strokeColor)
       sketch.strokeWeight(weight)
-      sketch.line(a.x, a.y, b.x, b.y)
+      sketch.line(a.x, a.y, a.x + (b.x - a.x) * progress, a.y + (b.y - a.y) * progress)
+    }
+
+    function drawConnection(link: CircleLink, progress = 1, opacity = 1): void {
+      const topic = state.selection.topic
+      const color = topic === 'fifths' ? 'rgba(137, 226, 242, 0.92)'
+        : topic === 'chords' ? 'rgba(255, 183, 116, 0.9)'
+          : topic === 'scales' ? 'rgba(125, 226, 198, 0.78)' : 'rgba(241, 156, 209, 0.82)'
+      drawLink(link.from, link.to, color, topic === 'scales' ? 2.5 : 3, progress, opacity)
+      if (topic === 'arpeggios') {
+        const a = point(link.from)
+        const b = point(link.to)
+        sketch.noStroke()
+        sketch.fill(`rgba(255, 211, 235, ${0.95 * opacity * Math.min(1, progress / 0.72)})`)
+        sketch.circle(a.x + (b.x - a.x) * 0.72, a.y + (b.y - a.y) * 0.72, Math.max(5, canvasSize * 0.018))
+      }
+    }
+
+    function drawNoteEffects(selected: ReadonlySet<PitchClass>, transition: SelectionTransition | undefined, progress: number): void {
+      const topic = state.selection.topic
+      const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
+      const radius = Math.max(22, canvasSize * 0.068)
+      order().forEach((note) => {
+        const changed = transition?.changed.has(note)
+        const strength = changed ? (selected.has(note) ? progress : 1 - progress) : selected.has(note) ? 1 : 0
+        if (strength === 0) return
+        const { x, y } = point(note)
+        sketch.noStroke()
+        for (let layer = 3; layer >= 1; layer -= 1) {
+          sketch.fill(`hsla(${note === state.selection.root ? 35 : hue}, 86%, 70%, ${0.028 * strength})`)
+          sketch.circle(x, y, radius * 2 + layer * 9)
+        }
+      })
+      if (transition?.rippleNote !== undefined) {
+        const { x, y } = point(transition.rippleNote)
+        sketch.noFill()
+        sketch.stroke(`hsla(${hue}, 85%, 78%, ${0.25 * (1 - progress)})`)
+        sketch.strokeWeight(1.25)
+        sketch.circle(x, y, radius * 2 + 4 + progress * 30)
+      }
     }
 
     function drawSpectrum(): void {
@@ -109,11 +183,13 @@ export function mountNoteCircle(
           visualizing = false
           readSpectrum = undefined
           spectrum = spectrumLevels(undefined)
-          sketch.noLoop()
         }
       }
+      const transition = selectionTransition
+      const elapsed = transition ? transitionProgress(transition.startedAtMs, performance.now(), selectionDurationMs) : 1
+      const progress = easeOutCubic(elapsed)
+      if (elapsed >= 1) selectionTransition = undefined
       const selected = new Set(state.activeNotes)
-      const activeOrder = activeNotesInOrder(state)
       const topic = state.selection.topic
       const root = state.selection.root
 
@@ -124,28 +200,15 @@ export function mountNoteCircle(
       sketch.strokeWeight(1.5)
       sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.68)
 
-      if (topic === 'fifths') {
-        state.resolved.links.forEach(({ from, to }) => {
-          if (selected.has(from) && selected.has(to)) drawLink(from, to, 'rgba(137, 226, 242, 0.92)', 3)
-        })
-      } else if (topic === 'chords') {
-        const links = activeOrder.length >= 3
-          ? activeOrder.map((from, index) => [from, activeOrder[(index + 1) % activeOrder.length]] as const)
-          : activeOrder.length === 2 ? [[activeOrder[0], activeOrder[1]] as const] : []
-        links.forEach(([from, to]) => drawLink(from, to, 'rgba(255, 183, 116, 0.9)', 3))
+      if (transition) {
+        transition.unchanged.forEach((link) => drawConnection(link))
+        transition.removed.forEach((link) => drawConnection(link, 1, 1 - progress))
+        transition.added.forEach((link) => drawConnection(link, progress))
       } else {
-        activeOrder.slice(1).forEach((to, index) => {
-          const from = activeOrder[index]
-          drawLink(from, to, topic === 'scales' ? 'rgba(125, 226, 198, 0.78)' : 'rgba(241, 156, 209, 0.82)', topic === 'scales' ? 2.5 : 3)
-          if (topic === 'arpeggios') {
-            const a = point(from)
-            const b = point(to)
-            sketch.noStroke()
-            sketch.fill('rgba(255, 211, 235, 0.95)')
-            sketch.circle(a.x + (b.x - a.x) * 0.72, a.y + (b.y - a.y) * 0.72, Math.max(5, canvasSize * 0.018))
-          }
-        })
+        visibleConnections(state).forEach((link) => drawConnection(link))
       }
+
+      drawNoteEffects(selected, transition, progress)
 
       order().forEach((note) => {
         const { x, y } = point(note)
@@ -171,19 +234,42 @@ export function mountNoteCircle(
         sketch.textStyle(isRoot || isSelected ? sketch.BOLD : sketch.NORMAL)
         sketch.text(noteLabelForState(state, note), x, y + 1)
       })
+      if (!visualizing && !selectionTransition) sketch.noLoop()
     }
   }, host)
 
+  function syncLoop(): void {
+    if (!reducedMotion.matches && (visualizing || selectionTransition)) sketchInstance.loop()
+    else sketchInstance.noLoop()
+  }
+
   const onMotionChange = () => {
-    if (reducedMotion.matches) sketchInstance.noLoop()
-    else if (visualizing) sketchInstance.loop()
+    if (reducedMotion.matches) selectionTransition = undefined
+    syncLoop()
     sketchInstance.redraw()
   }
   reducedMotion.addEventListener('change', onMotionChange)
 
   return {
     update(nextState) {
+      const changed = changedNotes(state.activeNotes, nextState.activeNotes)
+      const previousLinks = visibleConnections(state)
+      const nextLinks = visibleConnections(nextState)
+      const connections = changedConnections(previousLinks, nextLinks)
+      if (reducedMotion.matches || state.selection.topic !== nextState.selection.topic) {
+        selectionTransition = undefined
+      } else if (changed.length > 0 || connections.added.length > 0 || connections.removed.length > 0) {
+        selectionTransition = {
+          startedAtMs: performance.now(),
+          changed: new Set(changed),
+          added: matchingConnections(nextLinks, connections.added),
+          removed: matchingConnections(previousLinks, connections.removed),
+          unchanged: matchingConnections(nextLinks, connections.unchanged),
+          rippleNote: changed.length === 1 ? changed[0] : undefined,
+        }
+      }
       state = nextState
+      syncLoop()
       sketchInstance.redraw()
     },
     startSpectrum(read) {
@@ -191,14 +277,14 @@ export function mountNoteCircle(
       spectrum = spectrumLevels(read())
       visualizing = true
       silentFrames = 0
+      syncLoop()
       if (reducedMotion.matches) sketchInstance.redraw()
-      else sketchInstance.loop()
     },
     stopSpectrum() {
       visualizing = false
       readSpectrum = undefined
       spectrum = spectrumLevels(undefined)
-      sketchInstance.noLoop()
+      syncLoop()
       sketchInstance.redraw()
     },
     destroy() {
