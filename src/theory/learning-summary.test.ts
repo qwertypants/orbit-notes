@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createExplorerState, toggleExplorerNote } from '../explorer-state.ts'
 import { parseNoteName, type TopicSelection } from './music-theory.ts'
-import { createLearningSummary } from './learning-summary.ts'
+import { createLearningSummary, noteLabelForState } from './learning-summary.ts'
 
 const root = parseNoteName('C')
 
@@ -23,9 +23,10 @@ describe('createLearningSummary', () => {
     state = toggleExplorerNote(state, parseNoteName('C#'))
     const summary = createLearningSummary(state)
 
-    expect(summary.title).toBe('D Natural minor scale')
-    expect(summary.selectedNotes).toContain('D♭')
+    expect(summary.title).toBe('Custom notes around D')
+    expect(summary.selectedNotes).toContain('C♯')
     expect(summary.relationships).toContain('♭3 · F — minor third from D')
+    expect(summary.relationships).toContain('7 · C♯ — major seventh from D')
   })
 
   it('explains arpeggios as ordered chord tones', () => {
@@ -44,5 +45,32 @@ describe('createLearningSummary', () => {
     expect(summary.relationships.slice(0, 4)).toEqual(['C', 'G', 'D', 'A'])
     expect(summary.selectedNotes).toBe('C, G, F')
     expect(summary.explanation).toContain('perfect fifth')
+  })
+
+  it('spells ordinary major sevenths according to their degree', () => {
+    const state = createExplorerState({ topic: 'chords', root: parseNoteName('G'), preset: 'major7' })
+    const summary = createLearningSummary(state)
+    expect(summary.selectedNotes).toBe('G, B, D, F♯')
+    expect(summary.relationships).toContain('7 · F♯ — major seventh from G')
+    expect(noteLabelForState(state, parseNoteName('F#'))).toBe('F♯')
+  })
+
+  it('uses the root spelling to name a flat-key scale', () => {
+    const summary = createLearningSummary(createExplorerState({ topic: 'scales', root: parseNoteName('Gb'), preset: 'major' }))
+    expect(summary.selectedNotes).toBe('G♭, A♭, B♭, C♭, D♭, E♭, F')
+    expect(summary.relationships).toContain('4 · C♭ — perfect fourth from G♭')
+  })
+
+  it('shows only active intervals after a chord is customized', () => {
+    let state = createExplorerState({ topic: 'chords', root, preset: 'major' })
+    state = toggleExplorerNote(toggleExplorerNote(state, parseNoteName('E')), parseNoteName('Eb'))
+    const summary = createLearningSummary(state)
+    expect(summary.title).toBe('Custom notes around C')
+    expect(summary.selectedNotes).toBe('C, G, E♭')
+    expect(summary.relationships).toEqual([
+      '1 · C — root from C',
+      '5 · G — perfect fifth from C',
+      '♭3 · E♭ — minor third from C',
+    ])
   })
 })

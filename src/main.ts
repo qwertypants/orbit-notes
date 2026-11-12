@@ -13,7 +13,7 @@ import {
 } from './theory/music-theory.ts'
 import type { NoteCircle } from './visualization/note-circle.ts'
 import type { PlaybackMode } from './audio/audio-engine.ts'
-import { createLearningSummary } from './theory/learning-summary.ts'
+import { createLearningSummary, noteLabelForState } from './theory/learning-summary.ts'
 
 const app = document.querySelector<HTMLDivElement>('#app')
 
@@ -172,13 +172,13 @@ function renderSelection(): void {
     button.type = 'button'
     button.className = 'note-button'
     button.dataset.note = String(note)
-    button.textContent = noteName(note, 'flat')
+    button.textContent = noteLabelForState(explorerState, note)
     button.setAttribute('aria-pressed', String(active.has(note)))
-    button.setAttribute('aria-label', `${noteName(note, 'flat')}${note === root ? ', root' : ''}`)
+    button.setAttribute('aria-label', `${noteLabelForState(explorerState, note)}${note === root ? ', root' : ''}`)
     if (note === root) button.dataset.root = 'true'
     return button
   }))
-  const activeNames = activeNotesInOrder(explorerState).map((note) => noteName(note, 'flat')).join(', ') || 'none'
+  const activeNames = activeNotesInOrder(explorerState).map((note) => noteLabelForState(explorerState, note)).join(', ') || 'none'
   const topicName = topicSelect.options[topicSelect.selectedIndex].text
   circleDescription.textContent = `${topicName} circle, root ${noteName(root, 'flat')}. Selected notes: ${activeNames}. Use the note buttons to change the selection.`
   selectionStatus.textContent = `Selected notes: ${activeNames}.`
@@ -250,11 +250,11 @@ playButton.addEventListener('click', async () => {
     const mode: PlaybackMode = document.querySelector<HTMLInputElement>('input[name="playback"]:checked')?.value === 'sequence' ? 'sequence' : 'together'
     const { playNotes, readSpectrum } = await audioModule()
     if (request !== playRequest) return
-    const started = await playNotes(notes, mode)
+    const started = await playNotes(notes, mode, explorerState.selection.topic === 'fifths' ? 'within-octave' : 'ascending')
     if (request !== playRequest || !started) return
     spectrumReader = readSpectrum
     circle?.startSpectrum(readSpectrum)
-    const names = notes.map((note) => noteName(note, 'flat')).join(', ')
+    const names = notes.map((note) => noteLabelForState(explorerState, note)).join(', ')
     audioStatus.textContent = `Playing ${names} ${mode === 'sequence' ? 'in a row' : 'together'}.`
   } catch {
     if (request === playRequest) audioStatus.textContent = 'Sound could not start. Tap Play to try again.'

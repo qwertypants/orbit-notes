@@ -1,6 +1,7 @@
 import p5 from 'p5'
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
-import { circleOfFifths, noteName, type PitchClass } from '../theory/music-theory.ts'
+import { circleOfFifths, type PitchClass } from '../theory/music-theory.ts'
+import { noteLabelForState } from '../theory/learning-summary.ts'
 import { spectrumLevels } from './spectrum.ts'
 
 const chromaticOrder = Array.from({ length: 12 }, (_, index) => index as PitchClass)
@@ -168,7 +169,7 @@ export function mountNoteCircle(
         sketch.fill(isSelected && isRoot ? '#1e1623' : isSelected ? '#ffffff' : isPatternNote ? '#c8c8d8' : '#8a8da2')
         sketch.textSize(Math.max(12, canvasSize * 0.04))
         sketch.textStyle(isRoot || isSelected ? sketch.BOLD : sketch.NORMAL)
-        sketch.text(noteName(note, 'flat'), x, y + 1)
+        sketch.text(noteLabelForState(state, note), x, y + 1)
       })
     }
   }, host)

@@ -2,17 +2,21 @@ import * as Tone from 'tone'
 import type { PitchClass } from '../theory/music-theory.ts'
 
 export type PlaybackMode = 'together' | 'sequence'
+export type PlaybackVoicing = 'ascending' | 'within-octave'
 
 const toneNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
 const sequenceStepMs = 280
+const sequenceHoldMs = 240
+const chordHoldMs = 1000
 
 let synth: Tone.PolySynth<Tone.Synth> | undefined
 let analyser: Tone.Analyser | undefined
-let pendingNotes: ReturnType<typeof setTimeout>[] = []
+let pendingTimers: ReturnType<typeof setTimeout>[] = []
 let playbackVersion = 0
 
-/** Place the ordered pitch classes above the root, crossing into the next octave as needed. */
-function notesAboveRoot(notes: readonly PitchClass[]): string[] {
+/** Keep a cyclic fifth sequence in one register; other patterns cross one octave as needed. */
+function voicedNotes(notes: readonly PitchClass[], voicing: PlaybackVoicing): string[] {
+  if (voicing === 'within-octave') return notes.map((pitch) => `${toneNames[pitch]}4`)
   let octave = 4
   let previous = -1
   return notes.map((pitch) => {
@@ -45,13 +49,20 @@ export function readSpectrum(): Float32Array | undefined {
 /** Cancel pending notes and release voices already sounding. */
 export function stopPlayback(): void {
   playbackVersion += 1
-  pendingNotes.forEach(clearTimeout)
-  pendingNotes = []
+  pendingTimers.forEach(clearTimeout)
+  pendingTimers = []
   synth?.releaseAll()
 }
 
+function releaseAfter(voice: Tone.PolySynth<Tone.Synth>, pitches: string | string[], version: number, delayMs: number): void {
+  const timer = setTimeout(() => {
+    if (version === playbackVersion) voice.triggerRelease(pitches)
+  }, delayMs)
+  pendingTimers.push(timer)
+}
+
 /** Returns false if Stop or a newer Play cancelled audio startup. */
-export async function playNotes(notes: readonly PitchClass[], mode: PlaybackMode): Promise<boolean> {
+export async function playNotes(notes: readonly PitchClass[], mode: PlaybackMode, voicing: PlaybackVoicing = 'ascending'): Promise<boolean> {
   stopPlayback()
   if (notes.length === 0) return false
 
@@ -60,16 +71,20 @@ export async function playNotes(notes: readonly PitchClass[], mode: PlaybackMode
   if (requestVersion !== playbackVersion) return false
 
   const voice = instrument()
-  const pitches = notesAboveRoot(notes)
+  const pitches = voicedNotes(notes, voicing)
   if (mode === 'together') {
-    voice.triggerAttackRelease(pitches, '2n')
+    voice.triggerAttack(pitches)
+    releaseAfter(voice, pitches, requestVersion, chordHoldMs)
   } else {
-    voice.triggerAttackRelease(pitches[0], '8n')
+    voice.triggerAttack(pitches[0])
+    releaseAfter(voice, pitches[0], requestVersion, sequenceHoldMs)
     pitches.slice(1).forEach((pitch, index) => {
       const timer = setTimeout(() => {
-        if (requestVersion === playbackVersion) voice.triggerAttackRelease(pitch, '8n')
+        if (requestVersion !== playbackVersion) return
+        voice.triggerAttack(pitch)
+        releaseAfter(voice, pitch, requestVersion, sequenceHoldMs)
       }, (index + 1) * sequenceStepMs)
-      pendingNotes.push(timer)
+      pendingTimers.push(timer)
     })
   }
   return true
