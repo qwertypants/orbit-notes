@@ -59,6 +59,18 @@ h1 span { color: #ffb969; }
 .note-button[aria-pressed="true"] { border-color: #8ce7cf; color: #fff; background: #24443f; }
 .note-button[data-root="true"] { border-color: #ffbf70; box-shadow: inset 0 0 0 1px rgba(255,191,112,.45); }
 .note-button[data-root="true"][aria-pressed="true"] { color: #241a12; background: #ffbf70; }
+.theory-panel { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.025); }
+.theory-panel summary { min-height: 46px; display: flex; align-items: center; padding: 0 14px; color: #e8e5f3; cursor: pointer; font-size: 13px; font-weight: 650; }
+.theory-panel summary::marker { color: #ffbf70; }
+.theory-panel[open] summary { border-bottom: 1px solid var(--line); }
+.theory-content { padding: 14px; color: #c7c8d5; font-size: 12px; line-height: 1.55; }
+.theory-content h2 { margin: 0 0 9px; color: #fff; font-size: 16px; }
+.theory-content h3 { margin: 15px 0 6px; color: #ffcf91; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.theory-content p { margin: 8px 0; }
+.theory-selected { display: flex; flex-wrap: wrap; gap: 5px 8px; color: #fff; }
+.theory-selected span { color: var(--muted); }
+.theory-relationships { display: grid; gap: 5px; margin: 0; padding-left: 21px; }
+.theory-relationships li { padding-left: 3px; }
 .audio-status { min-height: 18px; margin: -13px 0 0; color: #9b9daf; text-align: center; font-size: 11px; }
 .footer { display: flex; justify-content: center; align-items: center; gap: 9px; padding: 20px 0 24px; color: #767a8c; font-size: 11px; }
 .footer-spark { color: #ffbc70; }

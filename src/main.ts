@@ -13,6 +13,7 @@ import {
 } from './theory/music-theory.ts'
 import { mountNoteCircle } from './visualization/note-circle.ts'
 import type { PlaybackMode } from './audio/audio-engine.ts'
+import { createLearningSummary } from './theory/learning-summary.ts'
 
 const app = document.querySelector<HTMLDivElement>('#app')
 
@@ -76,6 +77,10 @@ app.innerHTML = `
           <legend class="control-label">Notes · tap to change the shape</legend>
           <div id="note-buttons" class="note-buttons"></div>
         </fieldset>
+        <details class="theory-panel">
+          <summary>Explore the theory</summary>
+          <div id="theory-content" class="theory-content" aria-live="polite"></div>
+        </details>
       </div>
       <p id="selection-status" class="sr-only" role="status" aria-live="polite"></p>
       <p id="audio-status" class="audio-status" role="status" aria-live="polite">Choose a topic and press play to listen.</p>
@@ -96,6 +101,7 @@ const selectionStatus = document.querySelector<HTMLParagraphElement>('#selection
 const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-description')!
 const circleHost = document.querySelector<HTMLDivElement>('#note-circle')!
 const noteButtons = document.querySelector<HTMLDivElement>('#note-buttons')!
+const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
 
 type AudioModule = typeof import('./audio/audio-engine.ts')
 let audioModulePromise: Promise<AudioModule> | undefined
@@ -171,7 +177,30 @@ function renderSelection(): void {
   const topicName = topicSelect.options[topicSelect.selectedIndex].text
   circleDescription.textContent = `${topicName} circle, root ${noteName(root, 'flat')}. Selected notes: ${activeNames}. Use the note buttons to change the selection.`
   selectionStatus.textContent = `Selected notes: ${activeNames}.`
+  renderTheoryPanel()
   circle.update(explorerState)
+}
+
+function renderTheoryPanel(): void {
+  const summary = createLearningSummary(explorerState)
+  const heading = document.createElement('h2')
+  heading.textContent = summary.title
+  const selected = document.createElement('p')
+  selected.className = 'theory-selected'
+  selected.innerHTML = '<span>Selected notes</span>'
+  selected.append(document.createTextNode(summary.selectedNotes))
+  const explanation = document.createElement('p')
+  explanation.textContent = summary.explanation
+  const listHeading = document.createElement('h3')
+  listHeading.textContent = explorerState.selection.topic === 'fifths' ? 'Clockwise fifths' : 'Notes and relationships'
+  const list = document.createElement('ol')
+  list.className = 'theory-relationships'
+  summary.relationships.forEach((relationship) => {
+    const item = document.createElement('li')
+    item.textContent = relationship
+    list.append(item)
+  })
+  theoryContent.replaceChildren(heading, selected, explanation, listHeading, list)
 }
 
 function resetSelection(): void {
