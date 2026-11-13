@@ -18,6 +18,7 @@ import type { PlaybackMode, PlaybackPattern } from './audio/audio-engine.ts'
 import { createLearningSummary, noteLabelForState } from './theory/learning-summary.ts'
 import { renderTheorySummary, renderTraditionSummary } from './theory/learning-panel.ts'
 import { mountNoteStaff, type NoteStaff } from './visualization/note-staff.ts'
+import { setStaffVisibility } from './visualization/staff-visibility.ts'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -145,6 +146,7 @@ const selectionStatus = document.querySelector<HTMLParagraphElement>('#selection
 const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-description')!
 const circleHost = document.querySelector<HTMLDivElement>('#note-circle')!
 const staffHost = document.querySelector<HTMLDivElement>('#note-staff')!
+const staffPanel = document.querySelector<HTMLElement>('.staff-panel')!
 const staffToggle = document.querySelector<HTMLButtonElement>('#staff-toggle')!
 const noteButtons = document.querySelector<HTMLDivElement>('#note-buttons')!
 const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
@@ -390,11 +392,10 @@ noteButtons.addEventListener('click', (event) => {
 
 renderTraditionChoices()
 staff = mountNoteStaff(staffHost, explorerState)
+staffPanel.hidden = true
 staffToggle.addEventListener('click', () => {
   const visible = staffToggle.getAttribute('aria-pressed') !== 'true'
-  staffToggle.setAttribute('aria-pressed', String(visible))
-  staffToggle.textContent = visible ? 'Hide staff' : 'Show staff'
-  staffHost.hidden = !visible
+  setStaffVisibility({ panel: staffPanel, host: staffHost, toggle: staffToggle }, visible)
 })
 renderSelection()
 
