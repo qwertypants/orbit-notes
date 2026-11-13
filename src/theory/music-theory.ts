@@ -1,3 +1,5 @@
+import { findTraditionPattern } from './tradition-catalog.ts'
+
 /** Pitch classes use C = 0 through B = 11, independent of octave or spelling. */
 export type PitchClass = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11
 export type Spelling = 'sharp' | 'flat'
@@ -68,6 +70,7 @@ export type ScalePreset = keyof typeof scalePresets
 export type TopicSelection =
   | { topic: 'chords' | 'arpeggios'; root: PitchClass; preset: ChordPreset }
   | { topic: 'scales'; root: PitchClass; preset: ScalePreset }
+  | { topic: 'scales' | 'arpeggios'; root: PitchClass; culturalPatternId: string }
   | { topic: 'fifths'; root: PitchClass }
 
 /** Ordered note and relationship data consumed by both the visual and audio layers. */
@@ -119,6 +122,17 @@ function stepLinks(notes: readonly ResolvedNote[]): NoteLink[] {
 /** Resolve a topic selection once, then share its note order with display and playback. */
 export function resolveTopic(selection: TopicSelection): ResolvedTopic {
   const { topic, root } = selection
+  if ('culturalPatternId' in selection) {
+    const pattern = findTraditionPattern(selection.culturalPatternId)
+    if (!pattern) throw new RangeError(`Unknown cultural pattern ID: ${selection.culturalPatternId}`)
+    const patternTopic = pattern.kind === 'scale' ? 'scales' : 'arpeggios'
+    if (topic !== patternTopic) {
+      throw new RangeError(`Cultural pattern ${pattern.id} has kind ${pattern.kind} and cannot resolve as ${topic}`)
+    }
+    const notes = patternNotes(root, { label: pattern.name, intervals: pattern.intervals, degrees: pattern.degrees })
+    return { topic, root, preset: pattern.id, label: pattern.name, notes, links: stepLinks(notes) }
+  }
+
   if (topic === 'fifths') {
     const notes = Array.from({ length: 12 }, (_, index): ResolvedNote => {
       const note = transpose(root, index * 7)

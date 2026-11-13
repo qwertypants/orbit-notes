@@ -64,6 +64,60 @@ describe('topic note membership', () => {
   })
 })
 
+describe('catalog pattern resolution', () => {
+  it('transposes the Ryukyu song scale in catalog order with step links', () => {
+    const result = resolveTopic({ topic: 'scales', root: 7, culturalPatternId: 'ryukyu-song-scale' })
+
+    expect(result).toEqual({
+      topic: 'scales', root: 7, preset: 'ryukyu-song-scale', label: 'Ryukyu song scale',
+      notes: [
+        { pitchClass: 7, semitonesFromRoot: 0, interval: 'R', degree: '1' },
+        { pitchClass: 11, semitonesFromRoot: 4, interval: 'M3', degree: '3' },
+        { pitchClass: 0, semitonesFromRoot: 5, interval: 'P4', degree: '4' },
+        { pitchClass: 2, semitonesFromRoot: 7, interval: 'P5', degree: '5' },
+        { pitchClass: 6, semitonesFromRoot: 11, interval: 'M7', degree: '7' },
+      ],
+      links: [
+        { from: 7, to: 11, kind: 'step' },
+        { from: 11, to: 0, kind: 'step' },
+        { from: 0, to: 2, kind: 'step' },
+        { from: 2, to: 6, kind: 'step' },
+      ],
+    })
+  })
+
+  it('transposes the Bhūpālī ascending svara set without changing its degrees or order', () => {
+    const result = resolveTopic({ topic: 'scales', root: 10, culturalPatternId: 'bhupali-svara-set' })
+
+    expect(result).toEqual({
+      topic: 'scales', root: 10, preset: 'bhupali-svara-set', label: 'Bhūpālī, ascending svara set',
+      notes: [
+        { pitchClass: 10, semitonesFromRoot: 0, interval: 'R', degree: '1' },
+        { pitchClass: 0, semitonesFromRoot: 2, interval: 'M2', degree: '2' },
+        { pitchClass: 2, semitonesFromRoot: 4, interval: 'M3', degree: '3' },
+        { pitchClass: 5, semitonesFromRoot: 7, interval: 'P5', degree: '5' },
+        { pitchClass: 7, semitonesFromRoot: 9, interval: 'M6', degree: '6' },
+      ],
+      links: [
+        { from: 10, to: 0, kind: 'step' },
+        { from: 0, to: 2, kind: 'step' },
+        { from: 2, to: 5, kind: 'step' },
+        { from: 5, to: 7, kind: 'step' },
+      ],
+    })
+  })
+
+  it('rejects unknown catalog IDs instead of falling back to a standard preset', () => {
+    expect(() => resolveTopic({ topic: 'scales', root: 0, culturalPatternId: 'major' }))
+      .toThrow(new RangeError('Unknown cultural pattern ID: major'))
+  })
+
+  it('rejects selecting a catalog scale as an arpeggio', () => {
+    expect(() => resolveTopic({ topic: 'arpeggios', root: 0, culturalPatternId: 'ryukyu-song-scale' }))
+      .toThrow(new RangeError('Cultural pattern ryukyu-song-scale has kind scale and cannot resolve as arpeggios'))
+  })
+})
+
 describe('circle of fifths', () => {
   it('has all twelve notes once in ascending fifth order', () => {
     expect(circleOfFifths).toEqual([0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5])
