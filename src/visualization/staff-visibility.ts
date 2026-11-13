@@ -1,12 +1,13 @@
 export interface StaffVisibilityElements {
   panel: Pick<HTMLElement, 'hidden'>
   host: Pick<HTMLElement, 'hidden'>
-  toggle: Pick<HTMLButtonElement, 'textContent' | 'setAttribute'>
+  row: { classList: Pick<DOMTokenList, 'toggle'> }
+  toggle: Pick<HTMLButtonElement, 'setAttribute'>
 }
 
-export function setStaffVisibility({ panel, host, toggle }: StaffVisibilityElements, visible: boolean): void {
+export function setStaffVisibility({ panel, host, row, toggle }: StaffVisibilityElements, visible: boolean): void {
   panel.hidden = !visible
   host.hidden = !visible
+  row.classList.toggle('staff-visible', visible)
   toggle.setAttribute('aria-pressed', String(visible))
-  toggle.textContent = visible ? 'Hide staff' : 'Show staff'
 }

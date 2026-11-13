@@ -56,7 +56,10 @@ app.innerHTML = `
       </div>
 
       <div class="controls" aria-label="Explorer controls">
-        <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false">Show staff</button>
+        <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false">
+          <span class="staff-toggle__label">Staff view</span>
+          <span class="staff-toggle__switch" aria-hidden="true"><span class="staff-toggle__thumb"></span></span>
+        </button>
         <div class="control-field explore-field">
           <span class="control-label">Explore</span>
           <div id="topic-buttons" class="topic-buttons" role="group" aria-label="Choose a music topic">
@@ -147,6 +150,7 @@ const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-
 const circleHost = document.querySelector<HTMLDivElement>('#note-circle')!
 const staffHost = document.querySelector<HTMLDivElement>('#note-staff')!
 const staffPanel = document.querySelector<HTMLElement>('.staff-panel')!
+const visualizationRow = document.querySelector<HTMLDivElement>('.visualization-row')!
 const staffToggle = document.querySelector<HTMLButtonElement>('#staff-toggle')!
 const noteButtons = document.querySelector<HTMLDivElement>('#note-buttons')!
 const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
@@ -395,7 +399,7 @@ staff = mountNoteStaff(staffHost, explorerState)
 staffPanel.hidden = true
 staffToggle.addEventListener('click', () => {
   const visible = staffToggle.getAttribute('aria-pressed') !== 'true'
-  setStaffVisibility({ panel: staffPanel, host: staffHost, toggle: staffToggle }, visible)
+  setStaffVisibility({ panel: staffPanel, host: staffHost, row: visualizationRow, toggle: staffToggle }, visible)
 })
 renderSelection()
 

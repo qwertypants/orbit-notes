@@ -33,11 +33,15 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .note-circle { width: 100%; aspect-ratio: 1; }
 .note-circle canvas { display: block; width: 100% !important; height: auto !important; cursor: pointer; touch-action: manipulation; }
 .staff-panel { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
-.staff-toggle { min-height: 40px; padding: 0 14px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #f5f3ff; background: rgba(255,255,255,.06); cursor: pointer; }
+.staff-panel[hidden], .note-staff[hidden] { display: none; }
+.staff-toggle { display: inline-flex; min-width: 156px; min-height: 44px; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 11px 7px 14px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #f5f3ff; background: rgba(255,255,255,.06); cursor: pointer; }
 .staff-toggle:hover { background: rgba(255,255,255,.11); }
-.note-staff[hidden] { display: none; }
-.note-staff { margin-top: 12px; overflow-x: auto; }
-.note-staff-svg { display: block; width: 100%; min-width: 300px; height: auto; overflow: visible; }
+.staff-toggle__switch { display: flex; width: 38px; height: 22px; flex: 0 0 auto; align-items: center; padding: 3px; border-radius: 999px; background: #55586b; }
+.staff-toggle__thumb { width: 16px; height: 16px; border-radius: 50%; background: #f5f3ff; }
+.staff-toggle[aria-pressed="true"] .staff-toggle__switch { background: var(--accent); }
+.staff-toggle[aria-pressed="true"] .staff-toggle__thumb { transform: translateX(16px); background: #28202c; }
+.note-staff { min-width: 0; margin-top: 12px; }
+.note-staff-svg { display: block; width: 100%; height: auto; overflow: visible; }
 .staff-lines line, .staff-ledger { stroke: rgba(245,243,255,.78); stroke-width: 1.2; }
 .staff-clef { fill: #ffbf70; font-family: serif; font-size: 88px; }
 .staff-notehead { fill: #ffbf70; stroke: #ffd89f; stroke-width: 1; }
@@ -205,8 +209,9 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
   .shell { width: min(100% - 56px, 1120px); }
   .topbar { height: 76px; }
   .explorer { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .8fr); gap: 36px; max-width: 1120px; padding-top: 38px; }
-  .visualization-row { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); gap: 18px; }
+  .visualization-row.staff-visible { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); gap: 18px; }
   .circle-wrap { width: 100%; }
+  .visualization-row:not(.staff-visible) .circle-wrap { width: min(100%, 510px); }
   .note-circle-hud { display: none; }
   .controls { align-self: center; padding: 20px; }
   .note-buttons { grid-template-columns: repeat(6, minmax(0, 1fr)); }

@@ -6,19 +6,20 @@ describe('setStaffVisibility', () => {
     const elements = {
       panel: { hidden: false },
       host: { hidden: false },
-      toggle: { textContent: 'Hide staff', setAttribute: vi.fn() },
+      row: { classList: { toggle: vi.fn() } },
+      toggle: { setAttribute: vi.fn() },
     }
 
     setStaffVisibility(elements, false)
     expect(elements.panel.hidden).toBe(true)
     expect(elements.host.hidden).toBe(true)
+    expect(elements.row.classList.toggle).toHaveBeenCalledWith('staff-visible', false)
     expect(elements.toggle.setAttribute).toHaveBeenCalledWith('aria-pressed', 'false')
-    expect(elements.toggle.textContent).toBe('Show staff')
 
     setStaffVisibility(elements, true)
     expect(elements.panel.hidden).toBe(false)
     expect(elements.host.hidden).toBe(false)
+    expect(elements.row.classList.toggle).toHaveBeenLastCalledWith('staff-visible', true)
     expect(elements.toggle.setAttribute).toHaveBeenLastCalledWith('aria-pressed', 'true')
-    expect(elements.toggle.textContent).toBe('Hide staff')
   })
 })
