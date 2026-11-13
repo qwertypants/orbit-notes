@@ -50,12 +50,12 @@ app.innerHTML = `
           <div class="circle-caption" aria-hidden="true"><span class="caption-dot"></span> TWELVE NOTES · ENDLESS CONNECTIONS</div>
         </div>
         <section class="staff-panel" aria-label="Staff visualization">
-          <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false">Show staff</button>
           <div id="note-staff" class="note-staff" hidden></div>
         </section>
       </div>
 
       <div class="controls" aria-label="Explorer controls">
+        <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false">Show staff</button>
         <div class="control-field explore-field">
           <span class="control-label">Explore</span>
           <div id="topic-buttons" class="topic-buttons" role="group" aria-label="Choose a music topic">
