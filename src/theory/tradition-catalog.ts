@@ -51,7 +51,7 @@ export const traditionPatterns: readonly TraditionPattern[] = [
     intervals: [0, 2, 4, 7, 9],
     degrees: ['1', '2', '3', '5', '6'],
     context: 'Bhūpālī uses Sa, Re, Ga, Pa and Dha. Ga has particular prominence. Its phrasing and treatment of notes distinguish it from rāgas that share these pitches.',
-    representationNote: 'This equal-tempered example plays only the ascending pitch collection once within an octave. The degree numbers describe the app’s pitch mapping. Playback omits rāga-specific intonation, ornaments, note emphasis and melodic grammar; it is not a rendition of Bhūpālī.',
+    representationNote: 'This equal-tempered example stores the ascending pitch collection within one octave. The degree numbers describe the app’s pitch mapping. Playback omits rāga-specific intonation, ornaments, note emphasis and melodic grammar; it is not a rendition of Bhūpālī.',
     sources: [
       {
         title: 'Achintya Prahlad, Quantifying Alpatva (Scarcity) and Bahutva (Abundance), AAWM 11/1 (2023), Table 1 and §18',

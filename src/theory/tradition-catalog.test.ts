@@ -61,6 +61,14 @@ describe('tradition catalog', () => {
     }
   })
 
+  it('describes Bhūpālī as a stored collection without prescribing a playback mode', () => {
+    const note = findTraditionPattern('bhupali-svara-set')!.representationNote
+    expect(note).toContain('stores the ascending pitch collection within one octave')
+    expect(note).not.toContain('plays only')
+    expect(note).not.toContain('once')
+    expect(note).toContain('omits rāga-specific intonation, ornaments, note emphasis and melodic grammar')
+  })
+
   it('finds records by exact ID and leaves unknown IDs unresolved', () => {
     for (const pattern of traditionPatterns) expect(findTraditionPattern(pattern.id)).toBe(pattern)
     expect(findTraditionPattern('unknown-pattern')).toBeUndefined()
