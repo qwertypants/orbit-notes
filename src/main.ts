@@ -13,7 +13,7 @@ import {
 } from './theory/music-theory.ts'
 import type { NoteCircle } from './visualization/note-circle.ts'
 import type { NoteCircleHud } from './visualization/note-circle-hud.ts'
-import type { PlaybackMode } from './audio/audio-engine.ts'
+import type { PlaybackMode, PlaybackPattern } from './audio/audio-engine.ts'
 import { createLearningSummary, noteLabelForState } from './theory/learning-summary.ts'
 
 if ('serviceWorker' in navigator) {
@@ -82,6 +82,14 @@ app.innerHTML = `
             <label><input type="radio" name="playback" value="sequence" /><span>In a row</span></label>
           </div>
         </fieldset>
+        <fieldset class="playback-choice" id="pattern-field">
+          <legend class="control-label">Play pattern</legend>
+          <div class="segmented pattern-segmented">
+            <label><input type="radio" name="playback-pattern" value="once" checked /><span>Once</span></label>
+            <label><input type="radio" name="playback-pattern" value="loop" /><span>Loop</span></label>
+            <label><input type="radio" name="playback-pattern" value="bounce" /><span>Up &amp; down</span></label>
+          </div>
+        </fieldset>
         <div class="playback-buttons">
           <button id="play-button" class="play-button" type="button"><span aria-hidden="true">▶</span> Play</button>
         </div>
@@ -111,6 +119,8 @@ const playButton = document.querySelector<HTMLButtonElement>('#play-button')!
 const circlePlayButton = document.querySelector<HTMLButtonElement>('#circle-play-button')!
 const togetherInput = document.querySelector<HTMLInputElement>('input[name="playback"][value="together"]')!
 const sequenceInput = document.querySelector<HTMLInputElement>('input[name="playback"][value="sequence"]')!
+const patternField = document.querySelector<HTMLFieldSetElement>('#pattern-field')!
+const patternInputs = [...document.querySelectorAll<HTMLInputElement>('input[name="playback-pattern"]')]
 const audioStatus = document.querySelector<HTMLParagraphElement>('#audio-status')!
 const selectionStatus = document.querySelector<HTMLParagraphElement>('#selection-status')!
 const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-description')!
@@ -121,6 +131,7 @@ const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
 type AudioModule = typeof import('./audio/audio-engine.ts')
 let audioModulePromise: Promise<AudioModule> | undefined
 let playRequest = 0
+let loopingPlayback = false
 let circle: NoteCircle | undefined
 let circleLoadFailed = false
 const pendingNotePulses: { note: PitchClass; startedAtMs: number }[] = []
@@ -141,8 +152,12 @@ function audioModule(): Promise<AudioModule> {
 
 function stopCurrentPlayback(message?: string): void {
   playRequest += 1
+  loopingPlayback = false
   playButton.disabled = false
   circlePlayButton.disabled = false
+  playButton.innerHTML = '<span aria-hidden="true">▶</span> Play'
+  circlePlayButton.setAttribute('aria-label', 'Play selected notes')
+  circlePlayButton.title = 'Play selected notes'
   spectrumReader = undefined
   circle?.stopSpectrum()
   circle?.clearPulses()
@@ -173,9 +188,11 @@ function syncPlaybackChoice(resetForTopic = false): void {
     const defaultMode = topic === 'chords' ? 'together' : 'sequence'
     togetherInput.checked = defaultMode === 'together'
     sequenceInput.checked = defaultMode === 'sequence'
+    patternInputs.find((input) => input.value === 'once')!.checked = true
   }
   togetherInput.disabled = topic === 'arpeggios'
   if (topic === 'arpeggios') sequenceInput.checked = true
+  patternField.hidden = togetherInput.checked && topic !== 'arpeggios'
 }
 
 function populatePresets(): void {
@@ -319,6 +336,10 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
 })
 
 playButton.addEventListener('click', async () => {
+  if (loopingPlayback) {
+    stopCurrentPlayback('Playback stopped.')
+    return
+  }
   const notes = activeNotesInOrder(explorerState)
   if (notes.length === 0) {
     audioStatus.textContent = 'Choose at least one note before playing.'
@@ -331,6 +352,8 @@ playButton.addEventListener('click', async () => {
   audioStatus.textContent = 'Waking up the sound…'
   try {
     const mode: PlaybackMode = selectedTopic() === 'arpeggios' || sequenceInput.checked ? 'sequence' : 'together'
+    const selectedPattern = patternInputs.find((input) => input.checked)!.value as PlaybackPattern
+    const pattern: PlaybackPattern = mode === 'sequence' ? selectedPattern : 'once'
     const { playNotes, readSpectrum } = await audioModule()
     if (request !== playRequest) return
     const started = await playNotes(
@@ -345,13 +368,24 @@ playButton.addEventListener('click', async () => {
         else pendingHudNotePulses.push({ note, startedAtMs })
       },
       soundSelect.value as 'triangle' | 'sine' | 'sawtooth' | 'square' | 'fmsine',
+      pattern,
     )
     if (request !== playRequest || !started) return
     spectrumReader = readSpectrum
     circle?.startSpectrum(readSpectrum)
     circleHud?.startSpectrum(readSpectrum)
     const names = notes.map((note) => noteLabelForState(explorerState, note)).join(', ')
-    audioStatus.textContent = `Playing ${names} ${mode === 'sequence' ? 'in a row' : 'together'}.`
+    audioStatus.textContent = mode === 'together'
+      ? `Playing ${names} together.`
+      : pattern === 'loop'
+        ? `Looping ${names} in a row.`
+        : `Playing ${names} ${pattern === 'bounce' ? 'up and down' : 'in a row once'}.`
+    if (pattern === 'loop') {
+      loopingPlayback = true
+      playButton.innerHTML = '<span aria-hidden="true">■</span> Stop'
+      circlePlayButton.setAttribute('aria-label', 'Stop playback')
+      circlePlayButton.title = 'Stop playback'
+    }
   } catch {
     if (request === playRequest) audioStatus.textContent = 'Sound could not start. Tap Play to try again.'
   } finally {
@@ -392,7 +426,16 @@ presetButtons.addEventListener('click', (event) => {
 document.querySelectorAll<HTMLInputElement>('input[name="playback"]').forEach((input) => {
   input.addEventListener('change', () => {
     stopCurrentPlayback()
+    patternField.hidden = togetherInput.checked && selectedTopic() !== 'arpeggios'
     audioStatus.textContent = `${input.value === 'sequence' ? 'In a row' : 'Together'} playback selected.`
+  })
+})
+
+patternInputs.forEach((input) => {
+  input.addEventListener('change', () => {
+    stopCurrentPlayback()
+    const label = input.value === 'once' ? 'Once' : input.value === 'loop' ? 'Loop' : 'Up and down'
+    audioStatus.textContent = `${label} playback selected.`
   })
 })
 
