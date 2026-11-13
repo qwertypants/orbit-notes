@@ -108,6 +108,7 @@ app.innerHTML = `
           <div id="traditions-content" class="theory-content" role="tabpanel" aria-labelledby="traditions-tab" tabindex="0" hidden>
             <div id="tradition-buttons" class="tradition-buttons" role="group" aria-label="Choose a musical tradition"></div>
             <div id="tradition-patterns" class="tradition-buttons" role="group" aria-label="Choose a tradition pattern"></div>
+            <div id="tradition-summary" aria-live="polite"></div>
             <p class="tradition-empty">No documented arpeggios are currently in this collection.</p>
           </div>
         </details>
@@ -140,6 +141,7 @@ const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
 const theoryTabs = [...document.querySelectorAll<HTMLButtonElement>('.theory-tabs [role="tab"]')]
 const traditionButtons = document.querySelector<HTMLDivElement>('#tradition-buttons')!
 const traditionPatternButtons = document.querySelector<HTMLDivElement>('#tradition-patterns')!
+const traditionSummary = document.querySelector<HTMLDivElement>('#tradition-summary')!
 let culturalPattern: TraditionPattern | undefined
 let browsedTraditionId = traditionPatterns[0]?.traditionId
 
@@ -361,6 +363,61 @@ function renderTheoryPanel(): void {
     list.append(item)
   })
   theoryContent.replaceChildren(heading, selected, explanation, listHeading, list)
+  renderTraditionSummary(summary)
+}
+
+function renderTraditionSummary(summary: ReturnType<typeof createLearningSummary>): void {
+  traditionSummary.replaceChildren()
+  if (!summary.traditionName) {
+    const prompt = document.createElement('p')
+    prompt.textContent = 'Choose a pattern to explore its notes, context and sources.'
+    traditionSummary.append(prompt)
+    return
+  }
+
+  const heading = document.createElement('h3')
+  heading.textContent = summary.title
+  const tradition = document.createElement('p')
+  tradition.textContent = `${summary.traditionName} · ${summary.region}`
+  const selected = document.createElement('p')
+  selected.className = 'theory-selected'
+  const label = document.createElement('span')
+  label.textContent = 'Selected notes'
+  selected.append(label, document.createTextNode(summary.selectedNotes))
+  const context = document.createElement('p')
+  context.textContent = summary.context ?? ''
+  traditionSummary.append(heading, tradition, selected)
+  if (summary.explanation !== summary.context) {
+    const custom = document.createElement('p')
+    custom.textContent = `${summary.explanation} Original pattern: ${summary.patternName}.`
+    traditionSummary.append(custom)
+  }
+  traditionSummary.append(context)
+  if (summary.representationNote) {
+    const caveat = document.createElement('p')
+    caveat.textContent = summary.representationNote
+    traditionSummary.append(caveat)
+  }
+
+  const sources = document.createElement('p')
+  sources.append(document.createTextNode('Sources: '))
+  for (const source of summary.sources ?? []) {
+    let url: URL
+    try {
+      url = new URL(source.url)
+    } catch {
+      continue
+    }
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') continue
+    const link = document.createElement('a')
+    link.href = url.href
+    link.textContent = source.title
+    link.target = '_blank'
+    link.rel = 'noreferrer'
+    if (sources.childElementCount > 0) sources.append(document.createTextNode('; '))
+    sources.append(link)
+  }
+  if (sources.childElementCount > 0) traditionSummary.append(sources)
 }
 
 function resetSelection(): void {

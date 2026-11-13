@@ -1,11 +1,19 @@
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
 import { noteName, type PitchClass } from './music-theory.ts'
+import { findTraditionPattern, type TraditionPattern } from './tradition-catalog.ts'
 
 export type LearningSummary = {
   title: string
   selectedNotes: string
   relationships: string[]
   explanation: string
+  patternName?: string
+  patternKind?: TraditionPattern['kind']
+  traditionName?: string
+  region?: string
+  context?: string
+  representationNote?: string
+  sources?: TraditionPattern['sources']
 }
 
 const intervalNames: Record<string, string> = {
@@ -89,6 +97,18 @@ export function createLearningSummary(state: ExplorerState): LearningSummary {
   const namedNotes = notes.map((note) => ({ ...note, name: noteLabelForState(state, note.pitchClass) }))
   const selectedNotes = namedNotes.map((note) => note.name).join(', ') || 'None selected'
   const relationships = namedNotes.map((note) => `${note.degree} · ${note.name} — ${intervalNames[note.interval] ?? note.interval} from ${root}`)
+  const pattern = 'culturalPatternId' in state.selection
+    ? findTraditionPattern(state.selection.culturalPatternId)
+    : undefined
+  const catalogContext = pattern ? {
+    patternName: pattern.name,
+    patternKind: pattern.kind,
+    traditionName: pattern.traditionName,
+    region: pattern.region,
+    context: pattern.context,
+    representationNote: pattern.representationNote,
+    sources: pattern.sources,
+  } : {}
 
   if (isCustom) {
     return {
@@ -96,6 +116,17 @@ export function createLearningSummary(state: ExplorerState): LearningSummary {
       selectedNotes,
       relationships,
       explanation: 'These are your selected notes. Each interval is measured from the root.',
+      ...catalogContext,
+    }
+  }
+
+  if (pattern) {
+    return {
+      title: `${root} ${pattern.name} · ${pattern.kind === 'scale' ? 'Scale' : 'Arpeggio'}`,
+      selectedNotes,
+      relationships,
+      explanation: pattern.context,
+      ...catalogContext,
     }
   }
 

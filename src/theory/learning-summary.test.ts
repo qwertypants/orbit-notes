@@ -2,10 +2,52 @@ import { describe, expect, it } from 'vitest'
 import { createExplorerState, toggleExplorerNote } from '../explorer-state.ts'
 import { parseNoteName, type TopicSelection } from './music-theory.ts'
 import { createLearningSummary, noteLabelForState } from './learning-summary.ts'
+import { findTraditionPattern } from './tradition-catalog.ts'
 
 const root = parseNoteName('C')
 
 describe('createLearningSummary', () => {
+  it.each([
+    ['ryukyu-song-scale', 'Ryukyu song scale', 'Ryukyuan song traditions', 'Ryukyu Archipelago, especially Okinoerabu through Yaeyama', 'C, E, F, G, B'],
+    ['bhupali-svara-set', 'Bhūpālī, ascending svara set', 'Hindustani rāga', 'Northern Indian subcontinent', 'C, D, E, G, A'],
+  ])('attributes %s with its ordered notes and representation limits', (id, name, traditionName, region, notes) => {
+    const summary = createLearningSummary(createExplorerState({ topic: 'scales', root, culturalPatternId: id }))
+    const pattern = findTraditionPattern(id)!
+
+    expect(summary.title).toBe(`C ${name} · Scale`)
+    expect(summary.patternName).toBe(name)
+    expect(summary.patternKind).toBe('scale')
+    expect(summary.traditionName).toBe(traditionName)
+    expect(summary.region).toBe(region)
+    expect(summary.selectedNotes).toBe(notes)
+    expect(summary.context).toBe(pattern.context)
+    expect(summary.explanation).toBe(pattern.context)
+    expect(summary.representationNote).toBe(pattern.representationNote)
+    expect(summary.sources).toEqual(pattern.sources)
+  })
+
+  it.each<TopicSelection>([
+    { topic: 'chords', root, preset: 'major' },
+    { topic: 'scales', root, preset: 'major' },
+    { topic: 'arpeggios', root, preset: 'minor7' },
+    { topic: 'fifths', root },
+  ])('keeps the standard $topic summary shape', (selection) => {
+    expect(Object.keys(createLearningSummary(createExplorerState(selection))).sort()).toEqual([
+      'explanation', 'relationships', 'selectedNotes', 'title',
+    ])
+  })
+
+  it('identifies edited catalog notes as custom while retaining the source caveat', () => {
+    const state = toggleExplorerNote(createExplorerState({ topic: 'scales', root, culturalPatternId: 'bhupali-svara-set' }), parseNoteName('D'))
+    const summary = createLearningSummary(state)
+
+    expect(summary.title).toBe('Custom notes around C')
+    expect(summary.selectedNotes).toBe('C, E, G, A')
+    expect(summary.explanation).toContain('These are your selected notes')
+    expect(summary.context).toBe(findTraditionPattern('bhupali-svara-set')!.context)
+    expect(summary.representationNote).toContain('it is not a rendition of Bhūpālī')
+  })
+
   it('describes chord tones by their interval from the root', () => {
     const summary = createLearningSummary(createExplorerState({ topic: 'chords', root, preset: 'major' }))
 
