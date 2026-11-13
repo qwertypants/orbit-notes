@@ -211,15 +211,21 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
   .shell { width: min(100% - 56px, 1120px); }
   .topbar { height: 76px; }
   .explorer { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .8fr); gap: 36px; max-width: 1120px; padding-top: 38px; }
-  .visualization-row.staff-visible { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); gap: 18px; }
-  .visualization-row { position: sticky; top: 50vh; z-index: 3; transform: translateY(-50%); }
-  .circle-wrap { width: 100%; }
+  .visualization-row { position: sticky; top: 24px; z-index: 3; align-self: start; }
+  .circle-wrap { width: min(100%, 360px); }
+  .staff-panel { width: min(100%, 440px); justify-self: center; }
   .visualization-row:not(.staff-visible) .circle-wrap { width: min(100%, 510px); }
   .note-circle-hud { display: none; }
   .controls { align-self: center; padding: 20px; }
   .note-buttons { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .audio-status { grid-column: 2; margin-top: -30px; }
   .footer { justify-content: flex-start; border-top: 1px solid var(--line); }
+}
+
+@media (min-width: 1200px) {
+  .visualization-row.staff-visible { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); gap: 18px; }
+  .visualization-row { top: 50vh; align-self: center; transform: translateY(-50%); }
+  .circle-wrap { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
