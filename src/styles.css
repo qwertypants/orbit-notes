@@ -212,6 +212,7 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
   .topbar { height: 76px; }
   .explorer { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .8fr); gap: 36px; max-width: 1120px; padding-top: 38px; }
   .visualization-row.staff-visible { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); gap: 18px; }
+  .visualization-row { position: sticky; top: 50vh; z-index: 3; transform: translateY(-50%); }
   .circle-wrap { width: 100%; }
   .visualization-row:not(.staff-visible) .circle-wrap { width: min(100%, 510px); }
   .note-circle-hud { display: none; }
