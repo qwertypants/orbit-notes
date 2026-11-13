@@ -64,6 +64,13 @@ app.innerHTML = `
             <option value="G#">A♭</option><option value="A">A</option><option value="A#">B♭</option><option value="B">B</option>
           </select>
         </label>
+        <label class="control-field">
+          <span class="control-label">Sound</span>
+          <select id="sound-select" aria-label="Choose a sound">
+            <option value="triangle">Soft</option><option value="sine">Pure</option><option value="sawtooth">Bright</option>
+            <option value="square">Retro</option><option value="fmsine">Bell</option>
+          </select>
+        </label>
         <div class="control-field" id="preset-field">
           <span class="control-label">Shape</span>
           <div id="preset-buttons" class="preset-buttons" role="group" aria-label="Choose a chord or scale shape"></div>
@@ -97,6 +104,7 @@ app.innerHTML = `
 
 const topicButtons = document.querySelector<HTMLDivElement>('#topic-buttons')!
 const rootSelect = document.querySelector<HTMLSelectElement>('#root-select')!
+const soundSelect = document.querySelector<HTMLSelectElement>('#sound-select')!
 const presetField = document.querySelector<HTMLDivElement>('#preset-field')!
 const presetButtons = document.querySelector<HTMLDivElement>('#preset-buttons')!
 const playButton = document.querySelector<HTMLButtonElement>('#play-button')!
@@ -336,6 +344,7 @@ playButton.addEventListener('click', async () => {
         if (circleHud) circleHud.pulseNote(note)
         else pendingHudNotePulses.push({ note, startedAtMs })
       },
+      soundSelect.value as 'triangle' | 'sine' | 'sawtooth' | 'square' | 'fmsine',
     )
     if (request !== playRequest || !started) return
     spectrumReader = readSpectrum
