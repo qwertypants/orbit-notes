@@ -1,8 +1,12 @@
 import type { ExplorerState } from '../explorer-state.ts'
+import type { PitchClass } from '../theory/music-theory.ts'
 import { staffNotesForState } from './staff-notes.ts'
 
 export type NoteStaff = {
   update(state: ExplorerState): void
+  startNote(note: PitchClass): void
+  endNote(note: PitchClass): void
+  clearPlayback(): void
   destroy(): void
 }
 
@@ -17,7 +21,7 @@ export function renderNoteStaffSvg(state: ExplorerState): string {
     const accidental = note.accidental
       ? `<text class="staff-accidental" x="${x - 19}" y="${stepY(note.staffStep) + 5}" text-anchor="end">${note.accidental}</text>`
       : ''
-    return `<g role="img" data-staff-note="${note.pitchClass}" aria-label="${label}"><title>${label}</title>${accidental}<ellipse class="staff-notehead" cx="${x}" cy="${stepY(note.staffStep)}" rx="8" ry="5.5" transform="rotate(-18 ${x} ${stepY(note.staffStep)})" />${note.staffStep <= -2 ? `<line class="staff-ledger" x1="${x - 14}" y1="${stepY(note.staffStep)}" x2="${x + 14}" y2="${stepY(note.staffStep)}" />` : ''}</g>`
+    return `<g class="staff-note" role="img" data-staff-note="${note.pitchClass}" aria-label="${label}"><title>${label}</title>${accidental}<ellipse class="staff-notehead" cx="${x}" cy="${stepY(note.staffStep)}" rx="8" ry="5.5" transform="rotate(-18 ${x} ${stepY(note.staffStep)})" />${note.staffStep <= -2 ? `<line class="staff-ledger" x1="${x - 14}" y1="${stepY(note.staffStep)}" x2="${x + 14}" y2="${stepY(note.staffStep)}" />` : ''}</g>`
   }).join('')
   const width = Math.max(320, 174 + notes.length * 56)
   const lines = lineSteps.map((step) => `<line data-staff-line x1="76" y1="${stepY(step)}" x2="${width - 14}" y2="${stepY(step)}" />`).join('')
@@ -25,7 +29,39 @@ export function renderNoteStaffSvg(state: ExplorerState): string {
 }
 
 export function mountNoteStaff(host: HTMLElement, initialState: ExplorerState): NoteStaff {
-  const update = (state: ExplorerState) => { host.innerHTML = renderNoteStaffSvg(state) }
+  let state = initialState
+  const activeNotes: PitchClass[] = []
+  const updateLabel = () => {
+    const currentNote = [...activeNotes].reverse().find((pitch) => staffNotesForState(state).some((note) => note.pitchClass === pitch))
+    const spelling = currentNote === undefined ? '' : staffNotesForState(state).find((note) => note.pitchClass === currentNote)
+    const label = host.querySelector<HTMLElement>('.staff-current-note')
+    if (label) label.textContent = spelling ? `${spelling.letter}${spelling.accidental}${spelling.octave}` : ''
+  }
+  const applyActiveNotes = () => {
+    const groups = host.querySelectorAll<SVGGElement>('g[data-staff-note]')
+    groups.forEach((group) => group.classList.toggle('is-active', activeNotes.includes(Number(group.dataset.staffNote) as PitchClass)))
+    updateLabel()
+  }
+  const update = (nextState: ExplorerState) => {
+    state = nextState
+    host.innerHTML = `<div class="staff-current-note" aria-live="polite"></div>${renderNoteStaffSvg(state)}`
+    applyActiveNotes()
+  }
+  const startNote = (note: PitchClass) => {
+    const currentIndex = activeNotes.indexOf(note)
+    if (currentIndex !== -1) activeNotes.splice(currentIndex, 1)
+    activeNotes.push(note)
+    applyActiveNotes()
+  }
+  const endNote = (note: PitchClass) => {
+    const index = activeNotes.indexOf(note)
+    if (index !== -1) activeNotes.splice(index, 1)
+    applyActiveNotes()
+  }
+  const clearPlayback = () => {
+    activeNotes.length = 0
+    applyActiveNotes()
+  }
   update(initialState)
-  return { update, destroy: () => host.replaceChildren() }
+  return { update, startNote, endNote, clearPlayback, destroy: () => host.replaceChildren() }
 }
