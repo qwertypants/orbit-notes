@@ -12,6 +12,7 @@ import {
   type TopicSelection,
 } from './theory/music-theory.ts'
 import type { NoteCircle } from './visualization/note-circle.ts'
+import type { NoteCircleHud } from './visualization/note-circle-hud.ts'
 import type { PlaybackMode } from './audio/audio-engine.ts'
 import { createLearningSummary, noteLabelForState } from './theory/learning-summary.ts'
 
@@ -116,6 +117,7 @@ let circle: NoteCircle | undefined
 let circleLoadFailed = false
 const pendingNotePulses: { note: PitchClass; startedAtMs: number }[] = []
 const notePulseDurationMs = 500
+let circleHud: NoteCircleHud | undefined
 let spectrumReader: (() => Float32Array | undefined) | undefined
 let pageHidden = false
 let activeTopic: TopicId = 'chords'
@@ -136,6 +138,7 @@ function stopCurrentPlayback(message?: string): void {
   circle?.stopSpectrum()
   circle?.clearPulses()
   pendingNotePulses.length = 0
+  circleHud?.stopSpectrum()
   if (audioModulePromise) void audioModulePromise.then(({ stopPlayback }) => stopPlayback()).catch(() => {})
   if (message) audioStatus.textContent = message
 }
@@ -221,6 +224,7 @@ function renderSelection(): void {
   selectionStatus.textContent = `Selected notes: ${activeNames}.`
   renderTheoryPanel()
   circle?.update(explorerState)
+  circleHud?.update(explorerState)
 }
 
 function renderTheoryPanel(): void {
@@ -274,6 +278,22 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
     if (elapsedMs < notePulseDurationMs) circle?.pulseNote(note, elapsedMs)
   })
   if (spectrumReader) circle.startSpectrum(spectrumReader)
+
+  void import('./visualization/note-circle-hud.ts').then(({ mountNoteCircleHud }) => {
+    if (pageHidden) return
+    const anchor = circleHost.closest<HTMLElement>('.circle-wrap')
+    if (!anchor) return
+    circleHud = mountNoteCircleHud({
+      anchor,
+      initialState: explorerState,
+      onNoteToggle: toggleCircleNote,
+      onPlay: () => playButton.click(),
+    })
+    circleHud.update(explorerState)
+    if (spectrumReader) circleHud.startSpectrum(spectrumReader)
+  }).catch(() => {
+    // The main circle remains available if the optional floating HUD fails to load.
+  })
 }).catch(() => {
   circleLoadFailed = true
   pendingNotePulses.length = 0
@@ -307,6 +327,7 @@ playButton.addEventListener('click', async () => {
     if (request !== playRequest || !started) return
     spectrumReader = readSpectrum
     circle?.startSpectrum(readSpectrum)
+    circleHud?.startSpectrum(readSpectrum)
     const names = notes.map((note) => noteLabelForState(explorerState, note)).join(', ')
     audioStatus.textContent = `Playing ${names} ${mode === 'sequence' ? 'in a row' : 'together'}.`
   } catch {
@@ -356,6 +377,9 @@ document.querySelectorAll<HTMLInputElement>('input[name="playback"]').forEach((i
 window.addEventListener('pagehide', (event) => {
   if (!event.persisted) pageHidden = true
   stopCurrentPlayback()
-  if (!event.persisted) circle?.destroy()
+  if (!event.persisted) {
+    circle?.destroy()
+    circleHud?.destroy()
+  }
   if (audioModulePromise) void audioModulePromise.then(({ disposeAudio }) => disposeAudio()).catch(() => {})
 })
