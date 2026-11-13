@@ -49,6 +49,16 @@ describe('createLearningSummary', () => {
     expect(summary.representationNote).toContain('not identical to equal temperament')
   })
 
+  it('keeps the Bihor source-root caveat when the app root transposes its notes', () => {
+    const summary = createLearningSummary(createExplorerState({
+      topic: 'scales', root: parseNoteName('G'), culturalPatternId: 'bihor-hemitonic-pentatonic',
+    }))
+
+    expect(summary.selectedNotes).toBe('G, A, C♯, D, E')
+    expect(summary.representationNote).toContain('At the named F reference root')
+    expect(summary.representationNote).toContain('Selecting another app root transposes that set')
+  })
+
   it('describes chord tones by their interval from the root', () => {
     const summary = createLearningSummary(createExplorerState({ topic: 'chords', root, preset: 'major' }))
 

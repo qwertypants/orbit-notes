@@ -33,3 +33,7 @@ Corrected the Romanian reference from the PDF’s internal line/page numbering t
 ## Root transposition clarification
 
 Updated each representation note to identify the source reference root: F reproduces the listed Bihor F–G–B–C–D notes, while C reproduces the listed Chinese C gōng and maqām ʿAjam examples. Each note now says that selecting another app root transposes the source pitch set. Added focused assertions for all three notes. The UI and resolver behavior remain unchanged. Focused catalog tests and `git diff --check` passed.
+
+## Transposed summary coverage
+
+Added a Bihor learning-summary test using G as the app root. It asserts the transposed note list (`G, A, C♯, D, E`) and confirms the summary retains the F reference-root and app-root transposition caveat.
