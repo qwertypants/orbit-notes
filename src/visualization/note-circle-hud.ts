@@ -37,7 +37,6 @@ export function mountNoteCircleHud(options: {
   dragHandle.tabIndex = 0
   dragHandle.setAttribute('aria-label', 'Move note circle. Drag or use arrow keys.')
   dragHandle.title = 'Drag to move the note circle or focus it and use the arrow keys'
-  dragHandle.textContent = 'Drag or use arrow keys'
 
   const circleHost = document.createElement('div')
   circleHost.className = 'note-circle-hud__circle'
