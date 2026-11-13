@@ -63,10 +63,10 @@ app.innerHTML = `
             <option value="G#">A♭</option><option value="A">A</option><option value="A#">B♭</option><option value="B">B</option>
           </select>
         </label>
-        <label class="control-field" id="preset-field">
+        <div class="control-field" id="preset-field">
           <span class="control-label">Shape</span>
-          <select id="preset-select" aria-label="Choose a chord or scale shape"></select>
-        </label>
+          <div id="preset-buttons" class="preset-buttons" role="group" aria-label="Choose a chord or scale shape"></div>
+        </div>
         <fieldset class="playback-choice">
           <legend class="control-label">Hear it</legend>
           <div class="segmented">
@@ -96,8 +96,8 @@ app.innerHTML = `
 
 const topicButtons = document.querySelector<HTMLDivElement>('#topic-buttons')!
 const rootSelect = document.querySelector<HTMLSelectElement>('#root-select')!
-const presetField = document.querySelector<HTMLLabelElement>('#preset-field')!
-const presetSelect = document.querySelector<HTMLSelectElement>('#preset-select')!
+const presetField = document.querySelector<HTMLDivElement>('#preset-field')!
+const presetButtons = document.querySelector<HTMLDivElement>('#preset-buttons')!
 const playButton = document.querySelector<HTMLButtonElement>('#play-button')!
 const circlePlayButton = document.querySelector<HTMLButtonElement>('#circle-play-button')!
 const togetherInput = document.querySelector<HTMLInputElement>('input[name="playback"][value="together"]')!
@@ -164,22 +164,26 @@ function populatePresets(): void {
   presetField.hidden = topic === 'fifths'
   if (topic === 'fifths') return
   const options = topic === 'scales' ? scalePresets : chordPresets
-  const previous = presetSelect.value
-  presetSelect.replaceChildren(...Object.entries(options).map(([value, pattern]) => {
-    const option = document.createElement('option')
-    option.value = value
-    option.textContent = pattern.label
-    return option
+  const previousPreset = presetButtons.querySelector<HTMLButtonElement>('button[aria-pressed="true"]')?.dataset.preset
+  const selectedPreset = previousPreset && previousPreset in options ? previousPreset : 'major'
+  presetButtons.replaceChildren(...Object.entries(options).map(([value, pattern]) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'preset-button'
+    button.dataset.preset = value
+    button.textContent = pattern.label
+    button.setAttribute('aria-pressed', String(value === selectedPreset))
+    return button
   }))
-  presetSelect.value = previous in options ? previous : 'major'
 }
 
 function topicSelection(): TopicSelection {
   const topic = selectedTopic()
   const root = parseNoteName(rootSelect.value)
   if (topic === 'fifths') return { topic, root }
-  if (topic === 'scales') return { topic, root, preset: presetSelect.value as ScalePreset }
-  return { topic, root, preset: presetSelect.value as ChordPreset }
+  const preset = presetButtons.querySelector<HTMLButtonElement>('button[aria-pressed="true"]')?.dataset.preset ?? 'major'
+  if (topic === 'scales') return { topic, root, preset: preset as ScalePreset }
+  return { topic, root, preset: preset as ChordPreset }
 }
 
 populatePresets()
@@ -313,7 +317,14 @@ topicButtons.addEventListener('click', (event) => {
 })
 
 rootSelect.addEventListener('change', resetSelection)
-presetSelect.addEventListener('change', resetSelection)
+presetButtons.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-preset]')
+  if (!button || button.getAttribute('aria-pressed') === 'true') return
+  presetButtons.querySelectorAll<HTMLButtonElement>('button[data-preset]').forEach((presetButton) => {
+    presetButton.setAttribute('aria-pressed', String(presetButton === button))
+  })
+  resetSelection()
+})
 
 document.querySelectorAll<HTMLInputElement>('input[name="playback"]').forEach((input) => {
   input.addEventListener('change', () => {
