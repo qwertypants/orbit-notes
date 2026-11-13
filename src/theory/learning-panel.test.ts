@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createExplorerState, toggleExplorerNote } from '../explorer-state.ts'
 import { createLearningSummary, type LearningSummary } from './learning-summary.ts'
 import { renderTheorySummary, renderTraditionSummary } from './learning-panel.ts'
+import { findTraditionPattern } from './tradition-catalog.ts'
 
 class FakeNode {
   children: FakeNode[] = []
@@ -43,20 +44,21 @@ const renderers = [
 ] as const
 
 describe.each(renderers)('%s summary', (_tab, render) => {
-  it.each(['bihor-hemitonic-pentatonic', 'chinese-c-gong-mode', 'maqam-ajam-c'])('shows %s context beside its caveat and sources', (id) => {
-    const summary = createLearningSummary(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: id }))
+  it.each(['western-major-scale', 'western-major-triad-arpeggio', 'bihor-hemitonic-pentatonic', 'chinese-c-gong-mode', 'maqam-ajam-c'])('shows %s context and caveat without a sources section', (id) => {
+    const pattern = findTraditionPattern(id)!
+    const topic = pattern.kind === 'scale' ? 'scales' : 'arpeggios'
+    const summary = createLearningSummary(createExplorerState({ topic, root: 0, culturalPatternId: id }))
     const container = document.createElement('div')
     render(container, summary)
 
     for (const text of [summary.title, summary.selectedNotes, summary.traditionName, summary.region, summary.context, summary.representationNote]) {
       expect(container.textContent).toContain(text)
     }
-    expect(created.filter(({ tagName }) => tagName === 'a')).toEqual(summary.sources?.map((source) => expect.objectContaining({
-      textContent: source.title, href: source.url, target: '_blank', rel: 'noreferrer',
-    })))
+    expect(container.textContent).not.toContain('Sources:')
+    expect(created.some(({ tagName }) => tagName === 'a')).toBe(false)
   })
 
-  it('retains original context, representation limits and sources for edited notes', () => {
+  it('retains original context and representation limits for edited notes without rendering sources', () => {
     const state = toggleExplorerNote(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'chinese-c-gong-mode' }), 2)
     const summary = createLearningSummary(state)
     const container = document.createElement('div')
@@ -67,10 +69,11 @@ describe.each(renderers)('%s summary', (_tab, render) => {
     expect(container.textContent).toContain('Original pattern: C gōng mode.')
     expect(container.textContent).toContain(summary.context)
     expect(container.textContent).toContain(summary.representationNote)
-    expect(created.filter(({ tagName }) => tagName === 'a').map(({ href }) => href)).toEqual(summary.sources?.map(({ url }) => url))
+    expect(container.textContent).not.toContain('Sources:')
+    expect(created.some(({ tagName }) => tagName === 'a')).toBe(false)
   })
 
-  it('keeps catalog copy as text and excludes malformed or non-HTTP(S) source URLs', () => {
+  it('keeps catalog copy as text and does not render source URLs', () => {
     const text = '<img src=x onerror=alert(1)>'
     const source = { title: text, supportsPattern: true }
     const summary = { ...createLearningSummary(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'chinese-c-gong-mode' })),
@@ -82,10 +85,7 @@ describe.each(renderers)('%s summary', (_tab, render) => {
 
     expect(container.textContent).toContain(text)
     expect(created.some(({ tagName }) => tagName === 'img')).toBe(false)
-    expect(created.filter(({ tagName }) => tagName === 'a')).toEqual([
-      expect.objectContaining({ href: 'https://example.com/', textContent: text, target: '_blank', rel: 'noreferrer' }),
-      expect.objectContaining({ href: 'http://example.com/', textContent: text, target: '_blank', rel: 'noreferrer' }),
-    ])
+    expect(created.some(({ tagName }) => tagName === 'a')).toBe(false)
   })
 
   it('clears the previous catalog attribution when a standard preset is selected', () => {

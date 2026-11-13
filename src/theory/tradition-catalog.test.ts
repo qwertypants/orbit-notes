@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findTraditionPattern, traditionPatterns } from './tradition-catalog.ts'
+import { defaultPatternForTradition, defaultSelectionForTradition, findTraditionPattern, selectionForTraditionPattern, traditionPatterns } from './tradition-catalog.ts'
 import type { TraditionPattern } from './tradition-catalog.ts'
 
 describe('tradition catalog', () => {
@@ -53,6 +53,8 @@ describe('tradition catalog', () => {
   })
 
   it('preserves the documented cultural pitch collections and their representation limits', () => {
+    expect(findTraditionPattern('western-major-scale')?.intervals).toEqual([0, 2, 4, 5, 7, 9, 11])
+    expect(findTraditionPattern('western-major-triad-arpeggio')?.intervals).toEqual([0, 4, 7])
     expect(findTraditionPattern('bihor-hemitonic-pentatonic')?.intervals).toEqual([0, 2, 6, 7, 9])
     expect(findTraditionPattern('chinese-c-gong-mode')?.intervals).toEqual([0, 2, 4, 7, 9])
     expect(findTraditionPattern('maqam-ajam-c')?.intervals).toEqual([0, 2, 4, 5, 7, 9, 11])
@@ -64,17 +66,39 @@ describe('tradition catalog', () => {
 
   it('describes the C gōng representation limits', () => {
     const note = findTraditionPattern('chinese-c-gong-mode')!.representationNote
-    expect(note).toContain('traditional pitch derivation is not identical to equal temperament')
+    expect(note).toContain('Historical pitch derivation may differ from the equal temperament')
     expect(note).toContain('C–D–E–G–A')
+  })
+
+  it('chooses the first sourced pattern as the active default when a tradition is selected', () => {
+    expect(defaultPatternForTradition('western-tonal-theory')?.id).toBe('western-major-scale')
+    expect(defaultPatternForTradition('romanian-folklore')?.id).toBe('bihor-hemitonic-pentatonic')
+    expect(defaultPatternForTradition('chinese-traditional-music')?.id).toBe('chinese-c-gong-mode')
+    expect(defaultPatternForTradition('arab-maqam')?.id).toBe('maqam-ajam-c')
+    expect(defaultPatternForTradition('unknown-tradition')).toBeUndefined()
+  })
+
+  it('updates the active topic and pattern selection to the chosen tradition at the selected root', () => {
+    const westernDefault = defaultSelectionForTradition('western-tonal-theory', 0)
+    expect(westernDefault?.selection).toEqual({ topic: 'scales', root: 0, culturalPatternId: 'western-major-scale' })
+    expect(westernDefault?.pattern.kind).toBe('scale')
+
+    expect(selectionForTraditionPattern('western-major-triad-arpeggio', 2)?.selection)
+      .toEqual({ topic: 'arpeggios', root: 2, culturalPatternId: 'western-major-triad-arpeggio' })
+
+    expect(defaultSelectionForTradition('arab-maqam', 5)?.selection)
+      .toEqual({ topic: 'scales', root: 5, culturalPatternId: 'maqam-ajam-c' })
+    expect(defaultSelectionForTradition('unknown-tradition', 0)).toBeUndefined()
+    expect(selectionForTraditionPattern('unknown-pattern', 0)).toBeUndefined()
   })
 
   it('distinguishes each source reference root from the app root used for transposition', () => {
     expect(findTraditionPattern('bihor-hemitonic-pentatonic')!.representationNote)
-      .toContain('At the named F reference root, this equal-tempered example reproduces the source’s F–G–B–C–D pitch set. Selecting another app root transposes that set.')
+      .toContain('At the named F reference root, this equal-tempered example reproduces F–G–B–C–D. Selecting another app root transposes that set.')
     expect(findTraditionPattern('chinese-c-gong-mode')!.representationNote)
       .toContain('At the named C reference root, this equal-tempered example reproduces C–D–E–G–A. Selecting another app root transposes that set.')
     expect(findTraditionPattern('maqam-ajam-c')!.representationNote)
-      .toContain('At the named C reference root, this equal-tempered example reproduces the source’s ascending pitch set. Selecting another app root transposes that set.')
+      .toContain('At the named C reference root, this equal-tempered example reproduces the ascending pitch set. Selecting another app root transposes that set.')
   })
 
   it('finds records by exact ID and leaves unknown IDs unresolved', () => {

@@ -3,6 +3,7 @@ import {
   circleOfFifths, enharmonicNames, fifthNeighbors, noteName, parseNoteName,
   pitchClass, resolveTopic, transpose,
 } from './music-theory.ts'
+import { defaultSelectionForTradition, selectionForTraditionPattern } from './tradition-catalog.ts'
 
 describe('pitch classes and names', () => {
   it('wraps octave boundaries in both directions', () => {
@@ -65,6 +66,32 @@ describe('topic note membership', () => {
 })
 
 describe('catalog pattern resolution', () => {
+  it('updates the active pattern when a tradition is chosen', () => {
+    const western = defaultSelectionForTradition('western-tonal-theory', 0)!
+    expect(resolveTopic(western.selection).label).toBe('Major scale')
+    expect(resolveTopic(western.selection).topic).toBe('scales')
+
+    const romanian = defaultSelectionForTradition('romanian-folklore', 7)!
+    expect(resolveTopic(romanian.selection).label).toBe('Bihor hemitonic pentatonic (F–G–B–C–D)')
+    expect(resolveTopic(romanian.selection).notes.map(({ pitchClass }) => pitchClass)).toEqual([7, 9, 1, 2, 4])
+
+    const arpeggio = selectionForTraditionPattern('western-major-triad-arpeggio', 2)!
+    expect(resolveTopic(arpeggio.selection).topic).toBe('arpeggios')
+    expect(resolveTopic(arpeggio.selection).notes.map(({ pitchClass }) => pitchClass)).toEqual([2, 6, 9])
+  })
+
+  it('resolves the Western default arpeggio in order after a pattern is selected', () => {
+    const result = resolveTopic({ topic: 'arpeggios', root: 2, culturalPatternId: 'western-major-triad-arpeggio' })
+
+    expect(result.label).toBe('Major triad arpeggio')
+    expect(result.topic).toBe('arpeggios')
+    expect(result.notes.map(({ pitchClass, degree }) => ({ pitchClass, degree }))).toEqual([
+      { pitchClass: 2, degree: '1' },
+      { pitchClass: 6, degree: '3' },
+      { pitchClass: 9, degree: '5' },
+    ])
+  })
+
   it('transposes the Bihor pitch collection in catalog order with step links', () => {
     const result = resolveTopic({ topic: 'scales', root: 7, culturalPatternId: 'bihor-hemitonic-pentatonic' })
 

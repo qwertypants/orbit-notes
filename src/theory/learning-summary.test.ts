@@ -8,16 +8,19 @@ const root = parseNoteName('C')
 
 describe('createLearningSummary', () => {
   it.each([
+    ['western-major-scale', 'Major scale', 'Western tonal theory', 'Common-practice tradition', 'C, D, E, F, G, A, B'],
+    ['western-major-triad-arpeggio', 'Major triad arpeggio', 'Western tonal theory', 'Common-practice tradition', 'C, E, G'],
     ['bihor-hemitonic-pentatonic', 'Bihor hemitonic pentatonic (F–G–B–C–D)', 'Romanian folklore', 'Bihor region, Romania', 'C, D, F♯, G, A'],
     ['chinese-c-gong-mode', 'C gōng mode', 'Chinese traditional music', 'China', 'C, D, E, G, A'],
     ['maqam-ajam-c', 'Maqām ʿAjam on C', 'Arab maqām tradition', 'Arab musical traditions', 'C, D, E, F, G, A, B'],
   ])('attributes %s with its ordered notes and representation limits', (id, name, traditionName, region, notes) => {
-    const summary = createLearningSummary(createExplorerState({ topic: 'scales', root, culturalPatternId: id }))
     const pattern = findTraditionPattern(id)!
+    const topic = pattern.kind === 'scale' ? 'scales' : 'arpeggios'
+    const summary = createLearningSummary(createExplorerState({ topic, root, culturalPatternId: id }))
 
-    expect(summary.title).toBe(`C ${name} · Scale`)
+    expect(summary.title).toBe(`C ${name} · ${pattern.kind === 'scale' ? 'Scale' : 'Arpeggio'}`)
     expect(summary.patternName).toBe(name)
-    expect(summary.patternKind).toBe('scale')
+    expect(summary.patternKind).toBe(pattern.kind)
     expect(summary.traditionName).toBe(traditionName)
     expect(summary.region).toBe(region)
     expect(summary.selectedNotes).toBe(notes)
@@ -46,7 +49,7 @@ describe('createLearningSummary', () => {
     expect(summary.selectedNotes).toBe('C, E, G, A')
     expect(summary.explanation).toContain('These are your selected notes')
     expect(summary.context).toBe(findTraditionPattern('chinese-c-gong-mode')!.context)
-    expect(summary.representationNote).toContain('not identical to equal temperament')
+    expect(summary.representationNote).toContain('may differ from the equal temperament')
   })
 
   it('keeps the Bihor source-root caveat when the app root transposes its notes', () => {

@@ -11,7 +11,7 @@ import {
   type TopicId,
   type TopicSelection,
 } from './theory/music-theory.ts'
-import { traditionPatterns, type TraditionPattern } from './theory/tradition-catalog.ts'
+import { defaultSelectionForTradition, selectionForTraditionPattern, traditionPatterns, type TraditionPattern } from './theory/tradition-catalog.ts'
 import type { NoteCircle } from './visualization/note-circle.ts'
 import type { NoteCircleHud } from './visualization/note-circle-hud.ts'
 import type { PlaybackMode, PlaybackPattern } from './audio/audio-engine.ts'
@@ -52,8 +52,8 @@ app.innerHTML = `
         <div class="control-field explore-field">
           <span class="control-label">Explore</span>
           <div id="topic-buttons" class="topic-buttons" role="group" aria-label="Choose a music topic">
-            <button class="topic-button" type="button" data-topic="chords" aria-pressed="true">Chords</button>
-            <button class="topic-button" type="button" data-topic="scales" aria-pressed="false">Scales</button>
+            <button class="topic-button" type="button" data-topic="chords" aria-pressed="false">Chords</button>
+            <button class="topic-button" type="button" data-topic="scales" aria-pressed="true">Scales</button>
             <button class="topic-button" type="button" data-topic="arpeggios" aria-pressed="false">Arpeggios</button>
             <button class="topic-button" type="button" data-topic="fifths" aria-pressed="false">Fifths</button>
           </div>
@@ -110,7 +110,7 @@ app.innerHTML = `
             <div id="tradition-buttons" class="tradition-buttons" role="group" aria-label="Choose a musical tradition"></div>
             <div id="tradition-patterns" class="tradition-buttons" role="group" aria-label="Choose a tradition pattern"></div>
             <div id="tradition-summary" aria-live="polite"></div>
-            <p class="tradition-empty">No documented arpeggios are currently in this collection.</p>
+            <p class="tradition-empty">The curated non-Western entries currently include scales; no documented non-Western arpeggios are in this collection yet.</p>
           </div>
         </details>
       </div>
@@ -143,8 +143,8 @@ const theoryTabs = [...document.querySelectorAll<HTMLButtonElement>('.theory-tab
 const traditionButtons = document.querySelector<HTMLDivElement>('#tradition-buttons')!
 const traditionPatternButtons = document.querySelector<HTMLDivElement>('#tradition-patterns')!
 const traditionSummary = document.querySelector<HTMLDivElement>('#tradition-summary')!
-let culturalPattern: TraditionPattern | undefined
-let browsedTraditionId = traditionPatterns[0]?.traditionId
+let culturalPattern: TraditionPattern | undefined = defaultSelectionForTradition('western-tonal-theory', 0)?.pattern
+let browsedTraditionId = culturalPattern?.traditionId
 
 function activateTheoryTab(selected: HTMLButtonElement): void {
   theoryTabs.forEach((tab) => {
@@ -183,6 +183,14 @@ function renderTraditionChoices(): void {
     button.setAttribute('aria-pressed', String(tradition.traditionId === browsedTraditionId))
     button.addEventListener('click', () => {
       browsedTraditionId = tradition.traditionId
+      const chosen = defaultSelectionForTradition(tradition.traditionId, parseNoteName(rootSelect.value))
+      if (!chosen) return
+      const { pattern } = chosen
+      culturalPattern = pattern
+      activeTopic = chosen.selection.topic
+      populatePresets()
+      syncPlaybackChoice(true)
+      resetSelection()
       renderTraditionChoices()
       traditionButtons.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus()
     })
@@ -196,8 +204,11 @@ function renderTraditionChoices(): void {
     button.textContent = `${pattern.name} · ${pattern.kind === 'scale' ? 'Scale' : 'Arpeggio'}`
     button.setAttribute('aria-pressed', String(pattern.id === culturalPattern?.id))
     button.addEventListener('click', () => {
-      culturalPattern = pattern
-      activeTopic = pattern.kind === 'scale' ? 'scales' : 'arpeggios'
+      const chosen = selectionForTraditionPattern(pattern.id, parseNoteName(rootSelect.value))
+      if (!chosen) return
+      culturalPattern = chosen.pattern
+      browsedTraditionId = pattern.traditionId
+      activeTopic = chosen.selection.topic
       populatePresets()
       syncPlaybackChoice(true)
       resetSelection()
@@ -218,7 +229,7 @@ const notePulseDurationMs = 500
 let circleHud: NoteCircleHud | undefined
 let spectrumReader: (() => Float32Array | undefined) | undefined
 let pageHidden = false
-let activeTopic: TopicId = 'chords'
+let activeTopic: TopicId = 'scales'
 
 function audioModule(): Promise<AudioModule> {
   audioModulePromise ??= import('./audio/audio-engine.ts').catch((error: unknown) => {

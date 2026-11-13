@@ -32,7 +32,7 @@ export function renderTheorySummary(theoryContent: HTMLElement, summary: Learnin
       theoryContent.append(context)
     }
   }
-  appendTraditionAttribution(theoryContent, summary)
+  appendRepresentationNote(theoryContent, summary)
   theoryContent.append(listHeading, list)
 }
 
@@ -40,7 +40,7 @@ export function renderTraditionSummary(traditionSummary: HTMLElement, summary: L
   traditionSummary.replaceChildren()
   if (!summary.traditionName) {
     const prompt = document.createElement('p')
-    prompt.textContent = 'Choose a pattern to explore its notes, context and sources.'
+    prompt.textContent = 'Choose a pattern to explore its notes and context.'
     traditionSummary.append(prompt)
     return
   }
@@ -63,33 +63,13 @@ export function renderTraditionSummary(traditionSummary: HTMLElement, summary: L
     traditionSummary.append(custom)
   }
   traditionSummary.append(context)
-  appendTraditionAttribution(traditionSummary, summary)
+  appendRepresentationNote(traditionSummary, summary)
 }
 
-function appendTraditionAttribution(container: HTMLElement, summary: LearningSummary): void {
+function appendRepresentationNote(container: HTMLElement, summary: LearningSummary): void {
   if (summary.representationNote) {
     const caveat = document.createElement('p')
     caveat.textContent = summary.representationNote
     container.append(caveat)
   }
-
-  const sources = document.createElement('p')
-  sources.append(document.createTextNode('Sources: '))
-  for (const source of summary.sources ?? []) {
-    let url: URL
-    try {
-      url = new URL(source.url)
-    } catch {
-      continue
-    }
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') continue
-    const link = document.createElement('a')
-    link.href = url.href
-    link.textContent = source.title
-    link.target = '_blank'
-    link.rel = 'noreferrer'
-    if (sources.childElementCount > 0) sources.append(document.createTextNode('; '))
-    sources.append(link)
-  }
-  if (sources.childElementCount > 0) container.append(sources)
 }
