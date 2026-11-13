@@ -73,6 +73,55 @@ describe('selected-note playback', () => {
     expect(onNoteStart.mock.calls).toEqual([[2], [6], [9]])
   })
 
+  it('reports every chord note only after the shared release', async () => {
+    const onNoteEnd = vi.fn(() => {
+      expect(audio.noteRelease).toHaveBeenCalledWith(['C4', 'E4', 'G4'])
+    })
+    await playNotes([0, 4, 7], 'together', 'ascending', undefined, 'triangle', 'once', onNoteEnd)
+
+    vi.advanceTimersByTime(999)
+    expect(audio.noteRelease).not.toHaveBeenCalled()
+    expect(onNoteEnd).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(onNoteEnd.mock.calls).toEqual([[0], [4], [7]])
+    expect(audio.noteRelease).toHaveBeenCalledOnce()
+  })
+
+  it('reports each sequence release before the next note starts', async () => {
+    const onNoteStart = vi.fn()
+    const onNoteEnd = vi.fn()
+    await playNotes([2, 6], 'sequence', 'ascending', onNoteStart, 'triangle', 'once', onNoteEnd)
+
+    vi.advanceTimersByTime(239)
+    expect(onNoteEnd).not.toHaveBeenCalled()
+    expect(audio.noteRelease).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(audio.noteRelease.mock.calls).toEqual([['D4']])
+    expect(onNoteEnd.mock.calls).toEqual([[2]])
+    expect(onNoteStart.mock.calls).toEqual([[2]])
+    vi.advanceTimersByTime(40)
+    expect(onNoteStart.mock.calls).toEqual([[2], [6]])
+    expect(onNoteEnd.mock.calls).toEqual([[2]])
+    vi.advanceTimersByTime(239)
+    expect(onNoteEnd.mock.calls).toEqual([[2]])
+    vi.advanceTimersByTime(1)
+    expect(audio.noteRelease.mock.calls).toEqual([['D4'], ['F#4']])
+    expect(onNoteEnd.mock.calls).toEqual([[2], [6]])
+  })
+
+  it.each(['together', 'sequence'] as const)('cancels pending %s release callbacks on Stop', async (mode) => {
+    const onNoteEnd = vi.fn()
+    await playNotes([0, 4], mode, 'ascending', undefined, 'triangle', 'once', onNoteEnd)
+    vi.advanceTimersByTime(100)
+    stopPlayback()
+    vi.advanceTimersByTime(2000)
+
+    expect(audio.release).toHaveBeenCalled()
+    expect(audio.noteRelease).not.toHaveBeenCalled()
+    expect(onNoteEnd).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('plays a bounce sequence up and down without repeating the peak', async () => {
     const onNoteStart = vi.fn()
     await playNotes([7, 11, 2], 'sequence', 'ascending', onNoteStart, 'triangle', 'bounce')
@@ -223,14 +272,20 @@ describe('selected-note playback', () => {
   })
 
   it('cancels an old note release before replaying that pitch', async () => {
-    await playNotes([0], 'together')
+    const oldOnNoteEnd = vi.fn()
+    const newOnNoteEnd = vi.fn()
+    await playNotes([0], 'together', 'ascending', undefined, 'triangle', 'once', oldOnNoteEnd)
     vi.advanceTimersByTime(500)
-    await playNotes([0], 'together')
+    await playNotes([0], 'together', 'ascending', undefined, 'triangle', 'once', newOnNoteEnd)
     vi.advanceTimersByTime(500)
     expect(audio.noteRelease).not.toHaveBeenCalled()
+    expect(oldOnNoteEnd).not.toHaveBeenCalled()
+    expect(newOnNoteEnd).not.toHaveBeenCalled()
     vi.advanceTimersByTime(500)
     expect(audio.noteRelease).toHaveBeenCalledOnce()
     expect(audio.noteRelease).toHaveBeenCalledWith(['C4'])
+    expect(oldOnNoteEnd).not.toHaveBeenCalled()
+    expect(newOnNoteEnd.mock.calls).toEqual([[0]])
   })
 
   it('keeps a complete fifths sequence within one octave', async () => {

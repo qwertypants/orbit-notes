@@ -72,9 +72,18 @@ function scheduleTimeout(callback: () => void, delayMs: number): void {
   pendingTimers.add(timer)
 }
 
-function releaseAfter(voice: Tone.PolySynth<Tone.Synth>, pitches: string | string[], version: number, delayMs: number): void {
+function releaseAfter(
+  voice: Tone.PolySynth<Tone.Synth>,
+  pitches: string | string[],
+  version: number,
+  delayMs: number,
+  notes: readonly PitchClass[],
+  onNoteEnd?: (note: PitchClass) => void,
+): void {
   scheduleTimeout(() => {
-    if (version === playbackVersion) voice.triggerRelease(pitches)
+    if (version !== playbackVersion) return
+    voice.triggerRelease(pitches)
+    notes.forEach((note) => onNoteEnd?.(note))
   }, delayMs)
 }
 
@@ -86,6 +95,7 @@ export async function playNotes(
   onNoteStart?: (note: PitchClass) => void,
   sound: SoundType = 'triangle',
   pattern: PlaybackPattern = 'once',
+  onNoteEnd?: (note: PitchClass) => void,
 ): Promise<boolean> {
   stopPlayback()
   if (notes.length === 0) return false
@@ -99,7 +109,7 @@ export async function playNotes(
   if (mode === 'together') {
     voice.triggerAttack(pitches)
     notes.forEach((note) => onNoteStart?.(note))
-    releaseAfter(voice, pitches, requestVersion, chordHoldMs)
+    releaseAfter(voice, pitches, requestVersion, chordHoldMs, notes, onNoteEnd)
   } else {
     const events = notes.map((note, index) => ({ pitch: pitches[index], note }))
     if (pattern === 'bounce') events.push(...events.slice(0, -1).reverse())
@@ -111,7 +121,7 @@ export async function playNotes(
           if (requestVersion !== playbackVersion) return
           voice.triggerAttack(pitch)
           onNoteStart?.(note)
-          releaseAfter(voice, pitch, requestVersion, sequenceHoldMs)
+          releaseAfter(voice, pitch, requestVersion, sequenceHoldMs, [note], onNoteEnd)
         }
         if (index === 0) attack()
         else {
