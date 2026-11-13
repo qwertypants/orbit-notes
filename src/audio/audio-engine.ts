@@ -13,7 +13,7 @@ const chordHoldMs = 1000
 
 let synth: Tone.PolySynth<Tone.Synth> | undefined
 let analyser: Tone.Analyser | undefined
-let pendingTimers: ReturnType<typeof setTimeout>[] = []
+const pendingTimers = new Set<ReturnType<typeof setTimeout>>()
 let playbackVersion = 0
 let currentSound: SoundType = 'triangle'
 
@@ -60,15 +60,22 @@ export function readSpectrum(): Float32Array | undefined {
 export function stopPlayback(): void {
   playbackVersion += 1
   pendingTimers.forEach(clearTimeout)
-  pendingTimers = []
+  pendingTimers.clear()
   synth?.releaseAll()
 }
 
-function releaseAfter(voice: Tone.PolySynth<Tone.Synth>, pitches: string | string[], version: number, delayMs: number): void {
+function scheduleTimeout(callback: () => void, delayMs: number): void {
   const timer = setTimeout(() => {
+    pendingTimers.delete(timer)
+    callback()
+  }, delayMs)
+  pendingTimers.add(timer)
+}
+
+function releaseAfter(voice: Tone.PolySynth<Tone.Synth>, pitches: string | string[], version: number, delayMs: number): void {
+  scheduleTimeout(() => {
     if (version === playbackVersion) voice.triggerRelease(pitches)
   }, delayMs)
-  pendingTimers.push(timer)
 }
 
 /** Returns false if Stop or a newer Play cancelled audio startup. */
@@ -108,13 +115,11 @@ export async function playNotes(
         }
         if (index === 0) attack()
         else {
-          const timer = setTimeout(attack, index * sequenceStepMs)
-          pendingTimers.push(timer)
+          scheduleTimeout(attack, index * sequenceStepMs)
         }
       })
       if (pattern === 'loop' && requestVersion === playbackVersion) {
-        const timer = setTimeout(playPass, events.length * sequenceStepMs)
-        pendingTimers.push(timer)
+        scheduleTimeout(playPass, events.length * sequenceStepMs)
       }
     }
     playPass()

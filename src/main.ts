@@ -153,6 +153,7 @@ function audioModule(): Promise<AudioModule> {
 function stopCurrentPlayback(message?: string): void {
   playRequest += 1
   loopingPlayback = false
+  circleHud?.setPlaybackActive(false)
   playButton.disabled = false
   circlePlayButton.disabled = false
   playButton.innerHTML = '<span aria-hidden="true">▶</span> Play'
@@ -317,6 +318,7 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
       onNoteToggle: toggleCircleNote,
       onPlay: () => playButton.click(),
     })
+    circleHud.setPlaybackActive(loopingPlayback)
     circleHud.update(explorerState)
     const hudNow = performance.now()
     pendingHudNotePulses.splice(0).forEach(({ note, startedAtMs }) => {
@@ -382,6 +384,7 @@ playButton.addEventListener('click', async () => {
         : `Playing ${names} ${pattern === 'bounce' ? 'up and down' : 'in a row once'}.`
     if (pattern === 'loop') {
       loopingPlayback = true
+      circleHud?.setPlaybackActive(true)
       playButton.innerHTML = '<span aria-hidden="true">■</span> Stop'
       circlePlayButton.setAttribute('aria-label', 'Stop playback')
       circlePlayButton.title = 'Stop playback'

@@ -9,6 +9,7 @@ const minimumInset = 16
 const snapTransitionMs = 180
 
 export type NoteCircleHud = {
+  setPlaybackActive(active: boolean): void
   update(state: ExplorerState): void
   startSpectrum(read: () => Float32Array | undefined): void
   stopSpectrum(): void
@@ -44,8 +45,15 @@ export function mountNoteCircleHud(options: {
   const playButton = document.createElement('button')
   playButton.type = 'button'
   playButton.className = 'note-circle-hud__play'
-  playButton.setAttribute('aria-label', 'Play selected notes')
-  playButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.8c0-.8.9-1.3 1.6-.9l9.1 5.3a1 1 0 0 1 0 1.7l-9.1 5.3c-.7.4-1.6-.1-1.6-.9V5.8Z"/></svg>'
+  function setPlaybackActive(active: boolean): void {
+    const label = active ? 'Stop playback' : 'Play selected notes'
+    playButton.setAttribute('aria-label', label)
+    playButton.title = label
+    playButton.innerHTML = active
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.8c0-.8.9-1.3 1.6-.9l9.1 5.3a1 1 0 0 1 0 1.7l-9.1 5.3c-.7.4-1.6-.1-1.6-.9V5.8Z"/></svg>'
+  }
+  setPlaybackActive(false)
 
   root.append(dragHandle, circleHost, playButton)
   document.body.append(root)
@@ -257,6 +265,7 @@ export function mountNoteCircleHud(options: {
   syncVisibility()
 
   return {
+    setPlaybackActive,
     update(state) {
       circle.update(state)
     },

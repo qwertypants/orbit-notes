@@ -75,9 +75,10 @@ describe('selected-note playback', () => {
 
   it('plays a bounce sequence up and down without repeating the peak', async () => {
     const onNoteStart = vi.fn()
-    await playNotes([0, 4, 7], 'sequence', 'ascending', onNoteStart, 'triangle', 'bounce')
+    await playNotes([7, 11, 2], 'sequence', 'ascending', onNoteStart, 'triangle', 'bounce')
     vi.advanceTimersByTime(1120)
-    expect(onNoteStart.mock.calls).toEqual([[0], [4], [7], [4], [0]])
+    expect(onNoteStart.mock.calls).toEqual([[7], [11], [2], [11], [7]])
+    expect(audio.attack.mock.calls).toEqual([['G4'], ['B4'], ['D5'], ['B4'], ['G4']])
   })
 
   it('repeats a once sequence when loop is selected', async () => {
@@ -93,6 +94,36 @@ describe('selected-note playback', () => {
     stopPlayback()
     vi.advanceTimersByTime(2000)
     expect(onNoteStart.mock.calls).toEqual([[0]])
+  })
+
+  it('replaces a running loop without later old attacks or callbacks', async () => {
+    const oldOnset = vi.fn()
+    const newOnset = vi.fn()
+    await playNotes([0, 4], 'sequence', 'ascending', oldOnset, 'triangle', 'loop')
+    vi.advanceTimersByTime(560)
+    expect(oldOnset.mock.calls).toEqual([[0], [4], [0]])
+
+    await playNotes([5, 9], 'sequence', 'ascending', newOnset)
+    vi.advanceTimersByTime(3000)
+
+    expect(audio.attack.mock.calls).toEqual([['C4'], ['E4'], ['C4'], ['F4'], ['A4']])
+    expect(oldOnset.mock.calls).toEqual([[0], [4], [0]])
+    expect(newOnset.mock.calls).toEqual([[5], [9]])
+    expect(audio.noteRelease.mock.calls).toEqual([['C4'], ['E4'], ['F4'], ['A4']])
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('retains only outstanding timers after many loop passes and cancels them on stop', async () => {
+    await playNotes([0, 4], 'sequence', 'ascending', undefined, 'triangle', 'loop')
+    vi.advanceTimersByTime(560 * 100)
+    const clearTimer = vi.spyOn(globalThis, 'clearTimeout')
+    try {
+      stopPlayback()
+      expect(clearTimer).toHaveBeenCalledTimes(3)
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      clearTimer.mockRestore()
+    }
   })
 
   it('does not report scheduled sequence notes after playback is stopped', async () => {

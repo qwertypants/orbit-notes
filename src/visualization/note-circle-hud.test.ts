@@ -226,6 +226,39 @@ describe('mountNoteCircleHud', () => {
     hud.destroy()
   })
 
+  it('starts with an accessible play label, title, and icon', () => {
+    const hud = mountNoteCircleHud({ anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
+    const button = currentHud().children[2]
+
+    expect(button.getAttribute('aria-label')).toBe('Play selected notes')
+    expect(button.title).toBe('Play selected notes')
+    expect(button.innerHTML).toContain('<path')
+    expect(button.innerHTML).toContain('aria-hidden="true"')
+    hud.destroy()
+  })
+
+  it('switches to an accessible stop action and restores play when playback stops', () => {
+    const onPlay = vi.fn()
+    const hud = mountNoteCircleHud({ anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay })
+    const button = currentHud().children[2]
+    const playIcon = button.innerHTML
+
+    hud.setPlaybackActive(true)
+    expect(button.getAttribute('aria-label')).toBe('Stop playback')
+    expect(button.title).toBe('Stop playback')
+    expect(button.innerHTML).toContain('<rect')
+    expect(button.innerHTML).toContain('aria-hidden="true"')
+    expect(button.innerHTML).not.toBe(playIcon)
+    button.click()
+    expect(onPlay).toHaveBeenCalledOnce()
+
+    hud.setPlaybackActive(false)
+    expect(button.getAttribute('aria-label')).toBe('Play selected notes')
+    expect(button.title).toBe('Play selected notes')
+    expect(button.innerHTML).toBe(playIcon)
+    hud.destroy()
+  })
+
   it('measures asymmetric safe-area padding for placement and drag clamps, then remeasures on resize', () => {
     safeAreaInsets = { top: 30, right: 22, bottom: 44, left: 18 }
     const hud = mountNoteCircleHud({ anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
