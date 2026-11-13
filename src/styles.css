@@ -28,9 +28,20 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .topbar-note { color: var(--muted); font-size: 12px; }
 .control-label, .circle-caption { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; letter-spacing: 0.12em; }
 .explorer { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 22px; max-width: 770px; margin: 0 auto; padding-top: 22px; }
+.visualization-row { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 22px; min-width: 0; }
 .circle-wrap { position: relative; width: min(100%, 510px); margin: 0 auto; }
 .note-circle { width: 100%; aspect-ratio: 1; }
 .note-circle canvas { display: block; width: 100% !important; height: auto !important; cursor: pointer; touch-action: manipulation; }
+.staff-panel { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.staff-toggle { min-height: 40px; padding: 0 14px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #f5f3ff; background: rgba(255,255,255,.06); cursor: pointer; }
+.staff-toggle:hover { background: rgba(255,255,255,.11); }
+.note-staff[hidden] { display: none; }
+.note-staff { margin-top: 12px; overflow-x: auto; }
+.note-staff-svg { display: block; width: 100%; min-width: 300px; height: auto; overflow: visible; }
+.staff-lines line, .staff-ledger { stroke: rgba(245,243,255,.78); stroke-width: 1.2; }
+.staff-clef { fill: #ffbf70; font-family: serif; font-size: 88px; }
+.staff-notehead { fill: #ffbf70; stroke: #ffd89f; stroke-width: 1; }
+.staff-accidental { fill: #f5f3ff; font-family: ui-serif, Georgia, serif; font-size: 21px; }
 .circle-play-button { position: absolute; z-index: 2; top: 50%; left: 50%; display: grid; width: 56px; height: 56px; padding: 0; place-items: center; border: 1px solid rgba(255,255,255,.76); border-radius: 50%; color: #281d1c; background: linear-gradient(145deg, #ffd38f, #f5a6ba); box-shadow: 0 0 0 8px rgba(255,191,112,.09), 0 8px 28px rgba(245,166,186,.22); cursor: pointer; transform: translate(-50%, -50%); transition: box-shadow 160ms ease, filter 160ms ease; }
 .circle-play-button svg { width: 22px; height: 22px; margin-left: 3px; fill: currentColor; }
 .circle-play-button:hover { filter: brightness(1.08); box-shadow: 0 0 0 11px rgba(255,191,112,.12), 0 10px 34px rgba(245,166,186,.3); }
@@ -193,7 +204,8 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 @media (min-width: 760px) {
   .shell { width: min(100% - 56px, 1120px); }
   .topbar { height: 76px; }
-  .explorer { grid-template-columns: minmax(0, 1.1fr) minmax(280px, .8fr); gap: 42px; max-width: 930px; padding-top: 38px; }
+  .explorer { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .8fr); gap: 36px; max-width: 1120px; padding-top: 38px; }
+  .visualization-row { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); gap: 18px; }
   .circle-wrap { width: 100%; }
   .note-circle-hud { display: none; }
   .controls { align-self: center; padding: 20px; }

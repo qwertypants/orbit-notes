@@ -17,6 +17,7 @@ import type { NoteCircleHud } from './visualization/note-circle-hud.ts'
 import type { PlaybackMode, PlaybackPattern } from './audio/audio-engine.ts'
 import { createLearningSummary, noteLabelForState } from './theory/learning-summary.ts'
 import { renderTheorySummary, renderTraditionSummary } from './theory/learning-panel.ts'
+import { mountNoteStaff, type NoteStaff } from './visualization/note-staff.ts'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -38,14 +39,20 @@ app.innerHTML = `
     </header>
 
     <section class="explorer" aria-label="Music theory explorer">
-      <div class="circle-wrap">
-        <div id="note-circle" class="note-circle" role="img" aria-label="Interactive note circle" aria-describedby="circle-description">
-          <p class="sr-only" id="circle-description"></p>
+      <div class="visualization-row">
+        <div class="circle-wrap">
+          <div id="note-circle" class="note-circle" role="img" aria-label="Interactive note circle" aria-describedby="circle-description">
+            <p class="sr-only" id="circle-description"></p>
+          </div>
+          <button id="circle-play-button" class="circle-play-button" type="button" aria-label="Play selected notes" title="Play selected notes">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" /></svg>
+          </button>
+          <div class="circle-caption" aria-hidden="true"><span class="caption-dot"></span> TWELVE NOTES · ENDLESS CONNECTIONS</div>
         </div>
-        <button id="circle-play-button" class="circle-play-button" type="button" aria-label="Play selected notes" title="Play selected notes">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" /></svg>
-        </button>
-        <div class="circle-caption" aria-hidden="true"><span class="caption-dot"></span> TWELVE NOTES · ENDLESS CONNECTIONS</div>
+        <section class="staff-panel" aria-label="Staff visualization">
+          <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false">Show staff</button>
+          <div id="note-staff" class="note-staff" hidden></div>
+        </section>
       </div>
 
       <div class="controls" aria-label="Explorer controls">
@@ -137,6 +144,8 @@ const audioStatus = document.querySelector<HTMLParagraphElement>('#audio-status'
 const selectionStatus = document.querySelector<HTMLParagraphElement>('#selection-status')!
 const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-description')!
 const circleHost = document.querySelector<HTMLDivElement>('#note-circle')!
+const staffHost = document.querySelector<HTMLDivElement>('#note-staff')!
+const staffToggle = document.querySelector<HTMLButtonElement>('#staff-toggle')!
 const noteButtons = document.querySelector<HTMLDivElement>('#note-buttons')!
 const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
 const theoryTabs = [...document.querySelectorAll<HTMLButtonElement>('.theory-tabs [role="tab"]')]
@@ -230,6 +239,7 @@ let circleHud: NoteCircleHud | undefined
 let spectrumReader: (() => Float32Array | undefined) | undefined
 let pageHidden = false
 let activeTopic: TopicId = 'scales'
+let staff: NoteStaff
 
 function audioModule(): Promise<AudioModule> {
   audioModulePromise ??= import('./audio/audio-engine.ts').catch((error: unknown) => {
@@ -351,6 +361,7 @@ function renderSelection(): void {
     button.setAttribute('aria-pressed', String(button.dataset.culturalPattern === culturalPattern?.id))
   })
   renderTheoryPanel()
+  staff?.update(explorerState)
   circle?.update(explorerState)
   circleHud?.update(explorerState)
 }
@@ -378,6 +389,13 @@ noteButtons.addEventListener('click', (event) => {
 })
 
 renderTraditionChoices()
+staff = mountNoteStaff(staffHost, explorerState)
+staffToggle.addEventListener('click', () => {
+  const visible = staffToggle.getAttribute('aria-pressed') !== 'true'
+  staffToggle.setAttribute('aria-pressed', String(visible))
+  staffToggle.textContent = visible ? 'Hide staff' : 'Show staff'
+  staffHost.hidden = !visible
+})
 renderSelection()
 
 // The large p5 module loads after controls and note buttons are usable.
