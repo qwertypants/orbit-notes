@@ -26,6 +26,13 @@ describe('staffNotesForState', () => {
     expect(staffNotesForState({ ...state, activeNotes: [parseNoteName('F♯')] })[0]).toMatchObject({ letter: 'F', accidental: '♯', octave: 4 })
   })
 
+  it('preserves a supported double sharp and its diatonic staff position', () => {
+    const state = createExplorerState({ topic: 'chords', root: parseNoteName('B'), preset: 'augmented' })
+    expect(staffNotesForState({ ...state, activeNotes: [parseNoteName('G')] })[0]).toMatchObject({
+      pitchClass: parseNoteName('G'), letter: 'F', accidental: '𝄪', octave: 4, staffStep: 1,
+    })
+  })
+
   it('preserves the state-aware flat spelling', () => {
     expect(staffNotesForState(stateWithNotes('B♭'))[0]).toMatchObject({ letter: 'B', accidental: '♭', octave: 4 })
   })
