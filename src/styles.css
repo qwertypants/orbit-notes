@@ -162,7 +162,18 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .theory-panel summary { min-height: 46px; display: flex; align-items: center; padding: 0 14px; color: #e8e5f3; cursor: pointer; font-size: 13px; font-weight: 650; }
 .theory-panel summary::marker { color: #ffbf70; }
 .theory-panel[open] summary { border-bottom: 1px solid var(--line); }
-.theory-content { padding: 14px; color: #c7c8d5; font-size: 12px; line-height: 1.55; }
+.theory-tabs { display: flex; gap: 6px; padding: 8px 14px 0; }
+.theory-tabs [role="tab"] { flex: 1; min-width: 0; min-height: 44px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: var(--surface); cursor: pointer; font-size: 12px; }
+.theory-tabs [aria-selected="true"] { border-color: var(--accent); color: var(--accent); }
+.theory-content[hidden] { display: none; }
+.theory-content:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 9px; }
+.tradition-buttons { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.tradition-buttons + .tradition-buttons { margin-top: 12px; }
+.tradition-button { flex: 1 1 120px; min-width: 0; max-width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; color: #d5d6e3; background: #222435; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; cursor: pointer; }
+.tradition-button:hover { border-color: var(--accent); }
+.tradition-button[aria-pressed="true"] { border-color: var(--accent); color: #2a201b; background: linear-gradient(145deg, #ffd38f, #f5a6b8); }
+.theory-content .tradition-empty { margin: 12px 0 0; color: var(--muted); font-size: 11px; }
+.theory-content { min-width: 0; overflow-wrap: anywhere; padding: 14px; color: #c7c8d5; font-size: 12px; line-height: 1.55; }
 .theory-content h2 { margin: 0 0 9px; color: #fff; font-size: 16px; }
 .theory-content h3 { margin: 15px 0 6px; color: #ffcf91; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
 .theory-content p { margin: 8px 0; }

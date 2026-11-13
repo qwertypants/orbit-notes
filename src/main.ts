@@ -11,6 +11,7 @@ import {
   type TopicId,
   type TopicSelection,
 } from './theory/music-theory.ts'
+import { traditionPatterns, type TraditionPattern } from './theory/tradition-catalog.ts'
 import type { NoteCircle } from './visualization/note-circle.ts'
 import type { NoteCircleHud } from './visualization/note-circle-hud.ts'
 import type { PlaybackMode, PlaybackPattern } from './audio/audio-engine.ts'
@@ -99,7 +100,16 @@ app.innerHTML = `
         </fieldset>
         <details class="theory-panel">
           <summary>Explore the theory</summary>
-          <div id="theory-content" class="theory-content" aria-live="polite"></div>
+          <div class="theory-tabs" role="tablist" aria-label="Explore the theory">
+            <button id="theory-tab" type="button" role="tab" aria-selected="true" aria-controls="theory-content" tabindex="0">Theory</button>
+            <button id="traditions-tab" type="button" role="tab" aria-selected="false" aria-controls="traditions-content" tabindex="-1">Traditions</button>
+          </div>
+          <div id="theory-content" class="theory-content" role="tabpanel" aria-labelledby="theory-tab" tabindex="0" aria-live="polite"></div>
+          <div id="traditions-content" class="theory-content" role="tabpanel" aria-labelledby="traditions-tab" tabindex="0" hidden>
+            <div id="tradition-buttons" class="tradition-buttons" role="group" aria-label="Choose a musical tradition"></div>
+            <div id="tradition-patterns" class="tradition-buttons" role="group" aria-label="Choose a tradition pattern"></div>
+            <p class="tradition-empty">No documented arpeggios are currently in this collection.</p>
+          </div>
         </details>
       </div>
       <p id="selection-status" class="sr-only" role="status" aria-live="polite"></p>
@@ -127,6 +137,71 @@ const circleDescription = document.querySelector<HTMLParagraphElement>('#circle-
 const circleHost = document.querySelector<HTMLDivElement>('#note-circle')!
 const noteButtons = document.querySelector<HTMLDivElement>('#note-buttons')!
 const theoryContent = document.querySelector<HTMLDivElement>('#theory-content')!
+const theoryTabs = [...document.querySelectorAll<HTMLButtonElement>('.theory-tabs [role="tab"]')]
+const traditionButtons = document.querySelector<HTMLDivElement>('#tradition-buttons')!
+const traditionPatternButtons = document.querySelector<HTMLDivElement>('#tradition-patterns')!
+let culturalPattern: TraditionPattern | undefined
+let browsedTraditionId = traditionPatterns[0]?.traditionId
+
+function activateTheoryTab(selected: HTMLButtonElement): void {
+  theoryTabs.forEach((tab) => {
+    const active = tab === selected
+    tab.setAttribute('aria-selected', String(active))
+    tab.tabIndex = active ? 0 : -1
+    document.getElementById(tab.getAttribute('aria-controls')!)!.hidden = !active
+  })
+}
+
+theoryTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => activateTheoryTab(tab))
+  tab.addEventListener('keydown', (event) => {
+    let next: number
+    switch (event.key) {
+      case 'ArrowRight': next = (index + 1) % theoryTabs.length; break
+      case 'ArrowLeft': next = (index - 1 + theoryTabs.length) % theoryTabs.length; break
+      case 'Home': next = 0; break
+      case 'End': next = theoryTabs.length - 1; break
+      default: return
+    }
+    event.preventDefault()
+    const nextTab = theoryTabs[next]!
+    activateTheoryTab(nextTab)
+    nextTab.focus()
+  })
+})
+
+function renderTraditionChoices(): void {
+  const traditions = [...new Map(traditionPatterns.map((pattern) => [pattern.traditionId, pattern])).values()]
+  traditionButtons.replaceChildren(...traditions.map((tradition) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'tradition-button'
+    button.textContent = tradition.traditionName
+    button.setAttribute('aria-pressed', String(tradition.traditionId === browsedTraditionId))
+    button.addEventListener('click', () => {
+      browsedTraditionId = tradition.traditionId
+      renderTraditionChoices()
+      traditionButtons.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus()
+    })
+    return button
+  }))
+  traditionPatternButtons.replaceChildren(...traditionPatterns.filter((pattern) => pattern.traditionId === browsedTraditionId).map((pattern) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'tradition-button'
+    button.dataset.culturalPattern = pattern.id
+    button.textContent = `${pattern.name} · ${pattern.kind === 'scale' ? 'Scale' : 'Arpeggio'}`
+    button.setAttribute('aria-pressed', String(pattern.id === culturalPattern?.id))
+    button.addEventListener('click', () => {
+      culturalPattern = pattern
+      activeTopic = pattern.kind === 'scale' ? 'scales' : 'arpeggios'
+      populatePresets()
+      syncPlaybackChoice(true)
+      resetSelection()
+    })
+    return button
+  }))
+}
 
 type AudioModule = typeof import('./audio/audio-engine.ts')
 let audioModulePromise: Promise<AudioModule> | undefined
@@ -217,6 +292,7 @@ function populatePresets(): void {
 function topicSelection(): TopicSelection {
   const topic = selectedTopic()
   const root = parseNoteName(rootSelect.value)
+  if (culturalPattern) return { topic: culturalPattern.kind === 'scale' ? 'scales' : 'arpeggios', root, culturalPatternId: culturalPattern.id }
   if (topic === 'fifths') return { topic, root }
   const preset = presetButtons.querySelector<HTMLButtonElement>('button[aria-pressed="true"]')?.dataset.preset ?? 'major'
   if (topic === 'scales') return { topic, root, preset: preset as ScalePreset }
@@ -251,6 +327,15 @@ function renderSelection(): void {
   const selectedTopicName = topicName(selectedTopic())
   circleDescription.textContent = `${selectedTopicName} circle, root ${noteName(root, 'flat')}. Selected notes: ${activeNames}. Use the note buttons to change the selection.`
   selectionStatus.textContent = `Selected notes: ${activeNames}.`
+  topicButtons.querySelectorAll<HTMLButtonElement>('button[data-topic]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.topic === activeTopic))
+  })
+  if (culturalPattern) {
+    presetButtons.querySelectorAll<HTMLButtonElement>('button[data-preset]').forEach((button) => button.setAttribute('aria-pressed', 'false'))
+  }
+  traditionPatternButtons.querySelectorAll<HTMLButtonElement>('button[data-cultural-pattern]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.culturalPattern === culturalPattern?.id))
+  })
   renderTheoryPanel()
   circle?.update(explorerState)
   circleHud?.update(explorerState)
@@ -294,6 +379,7 @@ noteButtons.addEventListener('click', (event) => {
   noteButtons.querySelector<HTMLButtonElement>(`button[data-note="${note}"]`)?.focus()
 })
 
+renderTraditionChoices()
 renderSelection()
 
 // The large p5 module loads after controls and note buttons are usable.
@@ -405,7 +491,8 @@ topicButtons.addEventListener('click', (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-topic]')
   if (!button) return
   const topic = button.dataset.topic as TopicId
-  if (topic === activeTopic) return
+  if (topic === activeTopic && !culturalPattern) return
+  culturalPattern = undefined
   activeTopic = topic
   topicButtons.querySelectorAll<HTMLButtonElement>('button[data-topic]').forEach((topicButton) => {
     topicButton.setAttribute('aria-pressed', String(topicButton === button))
@@ -420,6 +507,7 @@ rootSelect.addEventListener('change', resetSelection)
 presetButtons.addEventListener('click', (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-preset]')
   if (!button || button.getAttribute('aria-pressed') === 'true') return
+  culturalPattern = undefined
   presetButtons.querySelectorAll<HTMLButtonElement>('button[data-preset]').forEach((presetButton) => {
     presetButton.setAttribute('aria-pressed', String(presetButton === button))
   })
