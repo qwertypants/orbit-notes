@@ -192,7 +192,7 @@ function syncPlaybackChoice(resetForTopic = false): void {
   }
   togetherInput.disabled = topic === 'arpeggios'
   if (topic === 'arpeggios') sequenceInput.checked = true
-  patternField.hidden = togetherInput.checked && topic !== 'arpeggios'
+  patternField.hidden = togetherInput.checked
 }
 
 function populatePresets(): void {
@@ -426,7 +426,7 @@ presetButtons.addEventListener('click', (event) => {
 document.querySelectorAll<HTMLInputElement>('input[name="playback"]').forEach((input) => {
   input.addEventListener('change', () => {
     stopCurrentPlayback()
-    patternField.hidden = togetherInput.checked && selectedTopic() !== 'arpeggios'
+    syncPlaybackChoice()
     audioStatus.textContent = `${input.value === 'sequence' ? 'In a row' : 'Together'} playback selected.`
   })
 })
