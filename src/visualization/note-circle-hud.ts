@@ -12,6 +12,8 @@ export type NoteCircleHud = {
   update(state: ExplorerState): void
   startSpectrum(read: () => Float32Array | undefined): void
   stopSpectrum(): void
+  pulseNote(note: PitchClass, elapsedMs?: number): void
+  clearPulses(): void
   destroy(): void
 }
 
@@ -264,6 +266,12 @@ export function mountNoteCircleHud(options: {
     },
     stopSpectrum() {
       circle.stopSpectrum()
+    },
+    pulseNote(note, elapsedMs) {
+      circle.pulseNote(note, elapsedMs)
+    },
+    clearPulses() {
+      circle.clearPulses()
     },
     destroy() {
       if (destroyed) return

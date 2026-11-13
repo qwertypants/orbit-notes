@@ -116,6 +116,7 @@ let playRequest = 0
 let circle: NoteCircle | undefined
 let circleLoadFailed = false
 const pendingNotePulses: { note: PitchClass; startedAtMs: number }[] = []
+const pendingHudNotePulses: { note: PitchClass; startedAtMs: number }[] = []
 const notePulseDurationMs = 500
 let circleHud: NoteCircleHud | undefined
 let spectrumReader: (() => Float32Array | undefined) | undefined
@@ -139,6 +140,8 @@ function stopCurrentPlayback(message?: string): void {
   circle?.clearPulses()
   pendingNotePulses.length = 0
   circleHud?.stopSpectrum()
+  circleHud?.clearPulses()
+  pendingHudNotePulses.length = 0
   if (audioModulePromise) void audioModulePromise.then(({ stopPlayback }) => stopPlayback()).catch(() => {})
   if (message) audioStatus.textContent = message
 }
@@ -290,13 +293,20 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
       onPlay: () => playButton.click(),
     })
     circleHud.update(explorerState)
+    const hudNow = performance.now()
+    pendingHudNotePulses.splice(0).forEach(({ note, startedAtMs }) => {
+      const elapsedMs = hudNow - startedAtMs
+      if (elapsedMs < notePulseDurationMs) circleHud?.pulseNote(note, elapsedMs)
+    })
     if (spectrumReader) circleHud.startSpectrum(spectrumReader)
   }).catch(() => {
+    pendingHudNotePulses.length = 0
     // The main circle remains available if the optional floating HUD fails to load.
   })
 }).catch(() => {
   circleLoadFailed = true
   pendingNotePulses.length = 0
+  pendingHudNotePulses.length = 0
   audioStatus.textContent = 'The note circle could not load. Use the note buttons to explore.'
 })
 
@@ -320,8 +330,11 @@ playButton.addEventListener('click', async () => {
       mode,
       explorerState.selection.topic === 'fifths' ? 'within-octave' : 'ascending',
       (note) => {
+        const startedAtMs = performance.now()
         if (circle) circle.pulseNote(note)
-        else if (!circleLoadFailed) pendingNotePulses.push({ note, startedAtMs: performance.now() })
+        else if (!circleLoadFailed) pendingNotePulses.push({ note, startedAtMs })
+        if (circleHud) circleHud.pulseNote(note)
+        else pendingHudNotePulses.push({ note, startedAtMs })
       },
     )
     if (request !== playRequest || !started) return
