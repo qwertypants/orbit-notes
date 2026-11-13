@@ -62,7 +62,12 @@ function releaseAfter(voice: Tone.PolySynth<Tone.Synth>, pitches: string | strin
 }
 
 /** Returns false if Stop or a newer Play cancelled audio startup. */
-export async function playNotes(notes: readonly PitchClass[], mode: PlaybackMode, voicing: PlaybackVoicing = 'ascending'): Promise<boolean> {
+export async function playNotes(
+  notes: readonly PitchClass[],
+  mode: PlaybackMode,
+  voicing: PlaybackVoicing = 'ascending',
+  onNoteStart?: (note: PitchClass) => void,
+): Promise<boolean> {
   stopPlayback()
   if (notes.length === 0) return false
 
@@ -74,14 +79,17 @@ export async function playNotes(notes: readonly PitchClass[], mode: PlaybackMode
   const pitches = voicedNotes(notes, voicing)
   if (mode === 'together') {
     voice.triggerAttack(pitches)
+    notes.forEach((note) => onNoteStart?.(note))
     releaseAfter(voice, pitches, requestVersion, chordHoldMs)
   } else {
     voice.triggerAttack(pitches[0])
+    onNoteStart?.(notes[0])
     releaseAfter(voice, pitches[0], requestVersion, sequenceHoldMs)
     pitches.slice(1).forEach((pitch, index) => {
       const timer = setTimeout(() => {
         if (requestVersion !== playbackVersion) return
         voice.triggerAttack(pitch)
+        onNoteStart?.(notes[index + 1])
         releaseAfter(voice, pitch, requestVersion, sequenceHoldMs)
       }, (index + 1) * sequenceStepMs)
       pendingTimers.push(timer)

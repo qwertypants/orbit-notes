@@ -113,6 +113,9 @@ type AudioModule = typeof import('./audio/audio-engine.ts')
 let audioModulePromise: Promise<AudioModule> | undefined
 let playRequest = 0
 let circle: NoteCircle | undefined
+let circleLoadFailed = false
+const pendingNotePulses: { note: PitchClass; startedAtMs: number }[] = []
+const notePulseDurationMs = 500
 let spectrumReader: (() => Float32Array | undefined) | undefined
 let pageHidden = false
 let activeTopic: TopicId = 'chords'
@@ -131,6 +134,8 @@ function stopCurrentPlayback(message?: string): void {
   circlePlayButton.disabled = false
   spectrumReader = undefined
   circle?.stopSpectrum()
+  circle?.clearPulses()
+  pendingNotePulses.length = 0
   if (audioModulePromise) void audioModulePromise.then(({ stopPlayback }) => stopPlayback()).catch(() => {})
   if (message) audioStatus.textContent = message
 }
@@ -263,8 +268,15 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
   if (pageHidden) return
   circle = mountNoteCircle(circleHost, explorerState, toggleCircleNote)
   circle.update(explorerState)
+  const now = performance.now()
+  pendingNotePulses.splice(0).forEach(({ note, startedAtMs }) => {
+    const elapsedMs = now - startedAtMs
+    if (elapsedMs < notePulseDurationMs) circle?.pulseNote(note, elapsedMs)
+  })
   if (spectrumReader) circle.startSpectrum(spectrumReader)
 }).catch(() => {
+  circleLoadFailed = true
+  pendingNotePulses.length = 0
   audioStatus.textContent = 'The note circle could not load. Use the note buttons to explore.'
 })
 
@@ -283,7 +295,15 @@ playButton.addEventListener('click', async () => {
     const mode: PlaybackMode = selectedTopic() === 'arpeggios' || sequenceInput.checked ? 'sequence' : 'together'
     const { playNotes, readSpectrum } = await audioModule()
     if (request !== playRequest) return
-    const started = await playNotes(notes, mode, explorerState.selection.topic === 'fifths' ? 'within-octave' : 'ascending')
+    const started = await playNotes(
+      notes,
+      mode,
+      explorerState.selection.topic === 'fifths' ? 'within-octave' : 'ascending',
+      (note) => {
+        if (circle) circle.pulseNote(note)
+        else if (!circleLoadFailed) pendingNotePulses.push({ note, startedAtMs: performance.now() })
+      },
+    )
     if (request !== playRequest || !started) return
     spectrumReader = readSpectrum
     circle?.startSpectrum(readSpectrum)

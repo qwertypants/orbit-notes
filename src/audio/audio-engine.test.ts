@@ -54,6 +54,34 @@ describe('selected-note playback', () => {
     expect(audio.noteRelease).toHaveBeenCalledWith(['C4', 'E4', 'G4'])
   })
 
+  it('reports each together-mode note when the chord attack starts', async () => {
+    const onNoteStart = vi.fn()
+    await playNotes([0, 4, 7], 'together', 'ascending', onNoteStart)
+
+    expect(audio.attack).toHaveBeenCalledWith(['C4', 'E4', 'G4'])
+    expect(onNoteStart.mock.calls).toEqual([[0], [4], [7]])
+  })
+
+  it('reports sequence notes only when their attacks start', async () => {
+    const onNoteStart = vi.fn()
+    await playNotes([2, 6, 9], 'sequence', 'ascending', onNoteStart)
+
+    expect(onNoteStart.mock.calls).toEqual([[2]])
+    vi.advanceTimersByTime(280)
+    expect(onNoteStart.mock.calls).toEqual([[2], [6]])
+    vi.advanceTimersByTime(280)
+    expect(onNoteStart.mock.calls).toEqual([[2], [6], [9]])
+  })
+
+  it('does not report scheduled sequence notes after playback is stopped', async () => {
+    const onNoteStart = vi.fn()
+    await playNotes([2, 6, 9], 'sequence', 'ascending', onNoteStart)
+    stopPlayback()
+    vi.advanceTimersByTime(1000)
+
+    expect(onNoteStart.mock.calls).toEqual([[2]])
+  })
+
   it('follows explorer state after a note is changed', async () => {
     const initial = createExplorerState({ topic: 'chords', root: 0, preset: 'major' })
     const changed = toggleExplorerNote(toggleExplorerNote(initial, 4), 3)

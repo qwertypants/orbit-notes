@@ -4,6 +4,7 @@ import { circleOfFifths, type PitchClass } from '../theory/music-theory.ts'
 import { noteLabelForState } from '../theory/learning-summary.ts'
 import { spectrumLevels } from './spectrum.ts'
 import { changedConnections, changedNotes, easeOutCubic, transitionProgress, type CircleLink } from './selection-animation.ts'
+import { createNotePulse, type NotePulse } from './note-pulse.ts'
 
 const chromaticOrder = Array.from({ length: 12 }, (_, index) => index as PitchClass)
 
@@ -44,6 +45,8 @@ export type NoteCircle = {
   update(state: ExplorerState): void
   startSpectrum(read: () => Float32Array | undefined): void
   stopSpectrum(): void
+  pulseNote(note: PitchClass, elapsedMs?: number): void
+  clearPulses(): void
   destroy(): void
 }
 
@@ -60,6 +63,8 @@ export function mountNoteCircle(
   let visualizing = false
   let silentFrames = 0
   let selectionTransition: SelectionTransition | undefined
+  const pulseControllers = new Map<PitchClass, NotePulse>()
+  const pulseProgress = new Map<PitchClass, number>()
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
   const sketchInstance = new p5((sketch) => {
@@ -151,6 +156,26 @@ export function mountNoteCircle(
       })
     }
 
+    function drawPlaybackPulses(): void {
+      const topic = state.selection.topic
+      const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
+      const radius = Math.max(22, canvasSize * 0.068)
+      pulseProgress.forEach((progress, note) => {
+        if (progress <= 0) return
+        const { x, y } = point(note)
+        const colorHue = note === state.selection.root ? 35 : hue
+        sketch.noStroke()
+        for (let layer = 3; layer >= 1; layer -= 1) {
+          sketch.fill(`hsla(${colorHue}, 86%, 70%, ${(0.045 * progress) / layer})`)
+          sketch.circle(x, y, radius * 2 + layer * (8 + progress * 6))
+        }
+        sketch.noFill()
+        sketch.stroke(`hsla(${colorHue}, 92%, 78%, ${0.72 * progress})`)
+        sketch.strokeWeight(Math.max(1.5, canvasSize * 0.004) * (0.65 + progress * 0.5))
+        sketch.circle(x, y, radius * 2 + 8 + (1 - progress) * canvasSize * 0.12)
+      })
+    }
+
     sketch.setup = () => {
       const canvas = sketch.createCanvas(1, 1)
       canvas.parent(host)
@@ -173,6 +198,10 @@ export function mountNoteCircle(
       observer = new ResizeObserver(resize)
       observer.observe(host)
       resize()
+      // setup may finish after callers have already started activity. Reconcile against
+      // current state so setup cannot leave an active animation stopped.
+      syncLoop()
+      sketch.redraw()
     }
 
     sketch.draw = () => {
@@ -209,6 +238,7 @@ export function mountNoteCircle(
       }
 
       drawNoteEffects(selected, transition, progress)
+      drawPlaybackPulses()
 
       order().forEach((note) => {
         const { x, y } = point(note)
@@ -234,17 +264,30 @@ export function mountNoteCircle(
         sketch.textStyle(isRoot || isSelected ? sketch.BOLD : sketch.NORMAL)
         sketch.text(noteLabelForState(state, note), x, y + 1)
       })
-      if (!visualizing && !selectionTransition) sketch.noLoop()
+      const pulseActive = [...pulseProgress.values()].some((value) => value > 0)
+      if (!visualizing && !selectionTransition && !pulseActive) sketch.noLoop()
     }
   }, host)
 
   function syncLoop(): void {
-    if (!reducedMotion.matches && (visualizing || selectionTransition)) sketchInstance.loop()
+    const pulseActive = [...pulseProgress.values()].some((value) => value > 0)
+    if (!reducedMotion.matches && (visualizing || selectionTransition || pulseActive)) sketchInstance.loop()
     else sketchInstance.noLoop()
   }
 
+  function clearPulses(): void {
+    pulseControllers.forEach((pulse) => pulse.stop())
+    pulseControllers.clear()
+    pulseProgress.clear()
+    syncLoop()
+    sketchInstance.redraw()
+  }
+
   const onMotionChange = () => {
-    if (reducedMotion.matches) selectionTransition = undefined
+    if (reducedMotion.matches) {
+      selectionTransition = undefined
+      clearPulses()
+    }
     syncLoop()
     sketchInstance.redraw()
   }
@@ -287,7 +330,27 @@ export function mountNoteCircle(
       syncLoop()
       sketchInstance.redraw()
     },
+    pulseNote(note, elapsedMs = 0) {
+      if (reducedMotion.matches) return
+      let pulse = pulseControllers.get(note)
+      if (!pulse) {
+        pulse = createNotePulse((progress) => {
+          pulseProgress.set(note, progress)
+          syncLoop()
+          sketchInstance.redraw()
+        }, reducedMotion.matches)
+        pulseControllers.set(note, pulse)
+      }
+      pulse.again(elapsedMs)
+      syncLoop()
+    },
+    clearPulses() {
+      clearPulses()
+    },
     destroy() {
+      pulseControllers.forEach((pulse) => pulse.stop())
+      pulseControllers.clear()
+      pulseProgress.clear()
       reducedMotion.removeEventListener('change', onMotionChange)
       observer?.disconnect()
       sketchInstance.remove()
