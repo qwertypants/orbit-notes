@@ -29,3 +29,7 @@ Only the catalog, its named hard-coded theory tests, and the minimal interval-de
 ## Citation correction
 
 Corrected the Romanian reference from the PDF’s internal line/page numbering to the published pagination: the Bihor pitch set is on p. 370, Figure 3 (published pp. 369–375). Updated the catalog citation and entry above. The focused catalog test and `git diff --check` passed. Commit: `Correct Romanian catalog citation`.
+
+## Root transposition clarification
+
+Updated each representation note to identify the source reference root: F reproduces the listed Bihor F–G–B–C–D notes, while C reproduces the listed Chinese C gōng and maqām ʿAjam examples. Each note now says that selecting another app root transposes the source pitch set. Added focused assertions for all three notes. The UI and resolver behavior remain unchanged. Focused catalog tests and `git diff --check` passed.

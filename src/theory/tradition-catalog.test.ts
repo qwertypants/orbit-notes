@@ -68,6 +68,15 @@ describe('tradition catalog', () => {
     expect(note).toContain('C–D–E–G–A')
   })
 
+  it('distinguishes each source reference root from the app root used for transposition', () => {
+    expect(findTraditionPattern('bihor-hemitonic-pentatonic')!.representationNote)
+      .toContain('At the named F reference root, this equal-tempered example reproduces the source’s F–G–B–C–D pitch set. Selecting another app root transposes that set.')
+    expect(findTraditionPattern('chinese-c-gong-mode')!.representationNote)
+      .toContain('At the named C reference root, this equal-tempered example reproduces C–D–E–G–A. Selecting another app root transposes that set.')
+    expect(findTraditionPattern('maqam-ajam-c')!.representationNote)
+      .toContain('At the named C reference root, this equal-tempered example reproduces the source’s ascending pitch set. Selecting another app root transposes that set.')
+  })
+
   it('finds records by exact ID and leaves unknown IDs unresolved', () => {
     for (const pattern of traditionPatterns) expect(findTraditionPattern(pattern.id)).toBe(pattern)
     expect(findTraditionPattern('unknown-pattern')).toBeUndefined()

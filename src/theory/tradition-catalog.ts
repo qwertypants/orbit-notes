@@ -32,7 +32,7 @@ export const traditionPatterns: readonly TraditionPattern[] = [
     intervals: [0, 2, 6, 7, 9],
     degrees: ['1', '2', '♯4', '5', '6'],
     context: 'This is one pitch collection identified in Bihor-region melodies, not a national Romanian system. The source discusses modal cadences and melodic behavior; this app only plays the pitch set.',
-    representationNote: 'This equal-tempered example stores the source’s F–G–B–C–D collection as root-relative intervals. It represents one Bihor example and does not reproduce modal cadence, melodic behavior, or a traditional performance.',
+    representationNote: 'At the named F reference root, this equal-tempered example reproduces the source’s F–G–B–C–D pitch set. Selecting another app root transposes that set. It represents one Bihor example and does not reproduce modal cadence, melodic behavior, or a traditional performance.',
     sources: [
       {
         title: 'Adrian Roşu, Types of modal cadences in Romanian folklore (2023), p. 370, Fig. 3',
@@ -51,7 +51,7 @@ export const traditionPatterns: readonly TraditionPattern[] = [
     intervals: [0, 2, 4, 7, 9],
     degrees: ['1', '2', '3', '5', '6'],
     context: 'This example is specifically the C gōng mode, not a representation of all Chinese music. The cited dissertation describes the five-tone system and its five modes.',
-    representationNote: 'This equal-tempered example represents C–D–E–G–A. The dissertation notes that traditional pitch derivation is not identical to equal temperament, which this app uses for playback.',
+    representationNote: 'At the named C reference root, this equal-tempered example reproduces C–D–E–G–A. Selecting another app root transposes that set. The dissertation notes that traditional pitch derivation is not identical to equal temperament, which this app uses for playback.',
     sources: [
       {
         title: 'Yannan Li, Cross-Cultural Synthesis in Chen Qigang’s Piano Composition (DMA dissertation), Figure 2 and pp. 10–12',
@@ -70,7 +70,7 @@ export const traditionPatterns: readonly TraditionPattern[] = [
     intervals: [0, 2, 4, 5, 7, 9, 11],
     degrees: ['1', '2', '3', '4', '5', '6', '7'],
     context: 'The source defines maqām as more than a scale, including characteristic motifs and traditional use. This entry captures only the pitch collection shown for ascending maqām ʿAjam on C.',
-    representationNote: 'This equal-tempered example stores the ascending pitch collection only. Playback does not reproduce maqām ʿAjam’s characteristic melodic motifs or traditional practice.',
+    representationNote: 'At the named C reference root, this equal-tempered example reproduces the source’s ascending pitch set. Selecting another app root transposes that set. Playback does not reproduce maqām ʿAjam’s characteristic melodic motifs or traditional practice.',
     sources: [
       {
         title: 'Al-Ghawanmeh et al., Arab music improvisation corpus for research (AMICOR): development and machine translation experiments (2026), §2.1, Figure 1',
