@@ -42,10 +42,10 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
   position: fixed;
   z-index: 20;
   display: grid;
-  grid-template-rows: 44px 144px 14px;
+  grid-template-rows: 44px 164px 14px;
   justify-items: center;
-  width: 184px;
-  height: 202px;
+  width: 204px;
+  height: 222px;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 19px;
   background: rgba(25, 27, 41, .94);
@@ -88,12 +88,12 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .note-circle-hud__drag:hover { color: #fff; background: rgba(255, 255, 255, .06); }
 .note-circle-hud__drag:focus-visible,
 .note-circle-hud__play:focus-visible { outline: 3px solid #ffbf70; outline-offset: 2px; }
-.note-circle-hud__circle { grid-row: 2; position: relative; width: 144px; height: 144px; }
+.note-circle-hud__circle { grid-row: 2; position: relative; width: 164px; height: 164px; }
 .note-circle-hud__circle canvas { display: block; width: 100% !important; height: auto !important; cursor: pointer; touch-action: manipulation; }
 .note-circle-hud__play {
   position: absolute;
   z-index: 2;
-  top: 116px;
+  top: 126px;
   left: 50%;
   display: grid;
   width: 40px;

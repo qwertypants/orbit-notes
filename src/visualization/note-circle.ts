@@ -105,7 +105,7 @@ export function mountNoteCircle(
       const color = topic === 'fifths' ? 'rgba(137, 226, 242, 0.92)'
         : topic === 'chords' ? 'rgba(255, 183, 116, 0.9)'
           : topic === 'scales' ? 'rgba(125, 226, 198, 0.78)' : 'rgba(241, 156, 209, 0.82)'
-      drawLink(link.from, link.to, color, topic === 'scales' ? 2.5 : 3, progress, opacity)
+      drawLink(link.from, link.to, color, Math.max(1.25, canvasSize * (topic === 'scales' ? 0.006 : 0.007)), progress, opacity)
       if (topic === 'arpeggios') {
         const a = point(link.from)
         const b = point(link.to)
@@ -118,7 +118,7 @@ export function mountNoteCircle(
     function drawNoteEffects(selected: ReadonlySet<PitchClass>, transition: SelectionTransition | undefined, progress: number): void {
       const topic = state.selection.topic
       const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
-      const radius = Math.max(22, canvasSize * 0.068)
+      const radius = Math.max(16, canvasSize * 0.062)
       order().forEach((note) => {
         const changed = transition?.changed.has(note)
         const strength = changed ? (selected.has(note) ? progress : 1 - progress) : selected.has(note) ? 1 : 0
@@ -159,7 +159,7 @@ export function mountNoteCircle(
     function drawPlaybackPulses(): void {
       const topic = state.selection.topic
       const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
-      const radius = Math.max(22, canvasSize * 0.068)
+      const radius = Math.max(16, canvasSize * 0.062)
       pulseProgress.forEach((progress, note) => {
         if (progress <= 0) return
         const { x, y } = point(note)
@@ -184,12 +184,12 @@ export function mountNoteCircle(
         const bounds = canvas.elt.getBoundingClientRect()
         const x = ((event.clientX - bounds.left) / bounds.width) * canvasSize
         const y = ((event.clientY - bounds.top) / bounds.height) * canvasSize
-        const hitRadius = Math.max(22, canvasSize * 0.068)
-        const hit = order().find((note) => {
+        const hitRadius = Math.max(20, canvasSize * 0.062)
+        const hit = order().map((note) => {
           const position = point(note)
-          return Math.hypot(position.x - x, position.y - y) <= hitRadius
-        })
-        if (hit !== undefined) onNoteToggle(hit)
+          return { note, distance: Math.hypot(position.x - x, position.y - y) }
+        }).filter(({ distance }) => distance <= hitRadius).sort((a, b) => a.distance - b.distance)[0]
+        if (hit) onNoteToggle(hit.note)
       })
       sketch.textFont('system-ui, sans-serif')
       sketch.textAlign(sketch.CENTER, sketch.CENTER)
@@ -245,12 +245,12 @@ export function mountNoteCircle(
         const isRoot = note === root
         const isSelected = selected.has(note)
         const isPatternNote = state.resolved.notes.some((entry) => entry.pitchClass === note)
-        const radius = Math.max(22, canvasSize * 0.068)
+        const radius = Math.max(16, canvasSize * 0.062)
         const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
 
-        sketch.stroke(isRoot ? '#ffd092' : isSelected ? `hsl(${hue} 85% 72%)` : 'rgba(233, 230, 255, 0.3)')
+        sketch.stroke(isRoot ? '#ffd092' : isSelected ? `hsl(${hue} 85% 72%)` : 'rgba(233, 230, 255, 0.58)')
         sketch.strokeWeight(isRoot ? 3 : isSelected ? 2 : 1)
-        sketch.fill(isSelected ? (isRoot ? '#fbbf77' : `hsl(${hue} 56% 25%)`) : isPatternNote ? '#272a3a' : '#1b1d2b')
+        sketch.fill(isSelected ? (isRoot ? '#fbbf77' : `hsl(${hue} 56% 25%)`) : isPatternNote ? '#34394d' : '#25283a')
         sketch.circle(x, y, radius * 2)
         if (isRoot) {
           sketch.noFill()
@@ -259,8 +259,8 @@ export function mountNoteCircle(
           sketch.circle(x, y, radius * 2 + 8)
         }
         sketch.noStroke()
-        sketch.fill(isSelected && isRoot ? '#1e1623' : isSelected ? '#ffffff' : isPatternNote ? '#c8c8d8' : '#8a8da2')
-        sketch.textSize(Math.max(12, canvasSize * 0.04))
+        sketch.fill(isSelected && isRoot ? '#1e1623' : isSelected ? '#ffffff' : isPatternNote ? '#e0e1ec' : '#c4c7d8')
+        sketch.textSize(Math.max(12, canvasSize * 0.045))
         sketch.textStyle(isRoot || isSelected ? sketch.BOLD : sketch.NORMAL)
         sketch.text(noteLabelForState(state, note), x, y + 1)
       })
