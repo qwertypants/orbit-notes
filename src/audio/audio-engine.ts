@@ -4,6 +4,7 @@ import type { PitchClass } from '../theory/music-theory.ts'
 export type PlaybackMode = 'together' | 'sequence'
 export type PlaybackVoicing = 'ascending' | 'within-octave'
 export type SoundType = 'triangle' | 'sine' | 'sawtooth' | 'square' | 'fmsine'
+export type PlaybackPattern = 'once' | 'loop' | 'bounce'
 
 const toneNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
 const sequenceStepMs = 280
@@ -77,6 +78,7 @@ export async function playNotes(
   voicing: PlaybackVoicing = 'ascending',
   onNoteStart?: (note: PitchClass) => void,
   sound: SoundType = 'triangle',
+  pattern: PlaybackPattern = 'once',
 ): Promise<boolean> {
   stopPlayback()
   if (notes.length === 0) return false
@@ -92,18 +94,30 @@ export async function playNotes(
     notes.forEach((note) => onNoteStart?.(note))
     releaseAfter(voice, pitches, requestVersion, chordHoldMs)
   } else {
-    voice.triggerAttack(pitches[0])
-    onNoteStart?.(notes[0])
-    releaseAfter(voice, pitches[0], requestVersion, sequenceHoldMs)
-    pitches.slice(1).forEach((pitch, index) => {
-      const timer = setTimeout(() => {
-        if (requestVersion !== playbackVersion) return
-        voice.triggerAttack(pitch)
-        onNoteStart?.(notes[index + 1])
-        releaseAfter(voice, pitch, requestVersion, sequenceHoldMs)
-      }, (index + 1) * sequenceStepMs)
-      pendingTimers.push(timer)
-    })
+    const events = notes.map((note, index) => ({ pitch: pitches[index], note }))
+    if (pattern === 'bounce') events.push(...events.slice(0, -1).reverse())
+
+    const playPass = () => {
+      if (requestVersion !== playbackVersion) return
+      events.forEach(({ pitch, note }, index) => {
+        const attack = () => {
+          if (requestVersion !== playbackVersion) return
+          voice.triggerAttack(pitch)
+          onNoteStart?.(note)
+          releaseAfter(voice, pitch, requestVersion, sequenceHoldMs)
+        }
+        if (index === 0) attack()
+        else {
+          const timer = setTimeout(attack, index * sequenceStepMs)
+          pendingTimers.push(timer)
+        }
+      })
+      if (pattern === 'loop' && requestVersion === playbackVersion) {
+        const timer = setTimeout(playPass, events.length * sequenceStepMs)
+        pendingTimers.push(timer)
+      }
+    }
+    playPass()
   }
   return true
 }

@@ -73,6 +73,28 @@ describe('selected-note playback', () => {
     expect(onNoteStart.mock.calls).toEqual([[2], [6], [9]])
   })
 
+  it('plays a bounce sequence up and down without repeating the peak', async () => {
+    const onNoteStart = vi.fn()
+    await playNotes([0, 4, 7], 'sequence', 'ascending', onNoteStart, 'triangle', 'bounce')
+    vi.advanceTimersByTime(1120)
+    expect(onNoteStart.mock.calls).toEqual([[0], [4], [7], [4], [0]])
+  })
+
+  it('repeats a once sequence when loop is selected', async () => {
+    const onNoteStart = vi.fn()
+    await playNotes([0, 4], 'sequence', 'ascending', onNoteStart, 'triangle', 'loop')
+    vi.advanceTimersByTime(560)
+    expect(onNoteStart.mock.calls).toEqual([[0], [4], [0]])
+  })
+
+  it('does not schedule another loop after stopPlayback', async () => {
+    const onNoteStart = vi.fn()
+    await playNotes([0, 4], 'sequence', 'ascending', onNoteStart, 'triangle', 'loop')
+    stopPlayback()
+    vi.advanceTimersByTime(2000)
+    expect(onNoteStart.mock.calls).toEqual([[0]])
+  })
+
   it('does not report scheduled sequence notes after playback is stopped', async () => {
     const onNoteStart = vi.fn()
     await playNotes([2, 6, 9], 'sequence', 'ascending', onNoteStart)
