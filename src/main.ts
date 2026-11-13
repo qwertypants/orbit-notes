@@ -267,6 +267,7 @@ function stopCurrentPlayback(message?: string): void {
   spectrumReader = undefined
   circle?.stopSpectrum()
   circle?.clearPulses()
+  staff?.clearPlayback()
   pendingNotePulses.length = 0
   circleHud?.stopSpectrum()
   circleHud?.clearPulses()
@@ -475,9 +476,11 @@ playButton.addEventListener('click', async () => {
         else if (!circleLoadFailed) pendingNotePulses.push({ note, startedAtMs })
         if (circleHud) circleHud.pulseNote(note)
         else pendingHudNotePulses.push({ note, startedAtMs })
+        staff?.startNote(note)
       },
       soundSelect.value as 'triangle' | 'sine' | 'sawtooth' | 'square' | 'fmsine',
       pattern,
+      (note) => staff?.endNote(note),
     )
     if (request !== playRequest || !started) return
     spectrumReader = readSpectrum
