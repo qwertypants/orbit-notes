@@ -6,7 +6,7 @@ Completed the follow-up catalog update. Replaced the Ryukyuan and Hindustani sta
 
 ## Catalog entries
 
-- **Bihor hemitonic pentatonic (F–G–B–C–D)** — intervals `[0, 2, 6, 7, 9]`; degrees `1, 2, ♯4, 5, 6`. The context identifies this as one Bihor-region example rather than a national Romanian system, and distinguishes the source’s modal cadence and melodic discussion from the app’s pitch-set playback. Reference: Adrian Roşu, “Types of modal cadences in Romanian folklore” (2023), pp. 61–65, https://icc-online.arte-ct.ro/vol_09/34.pdf.
+- **Bihor hemitonic pentatonic (F–G–B–C–D)** — intervals `[0, 2, 6, 7, 9]`; degrees `1, 2, ♯4, 5, 6`. The context identifies this as one Bihor-region example rather than a national Romanian system, and distinguishes the source’s modal cadence and melodic discussion from the app’s pitch-set playback. Reference: Adrian Roşu, “Types of modal cadences in Romanian folklore” (2023), p. 370, Figure 3, https://icc-online.arte-ct.ro/vol_09/34.pdf.
 - **C gōng mode** — intervals `[0, 2, 4, 7, 9]`; degrees `1, 2, 3, 5, 6`. Copy identifies this specifically as C gōng, not all Chinese music, and notes that the dissertation’s traditional pitch derivation is not identical to equal temperament. Reference: Yannan Li, *Cross-Cultural Synthesis in Chen Qigang’s Piano Composition*, Figure 2 and pp. 10–12, https://www.digitalgreensboro.org/record/12444/files/td_3292_PDF.pdf.
 - **Maqām ʿAjam on C** — intervals `[0, 2, 4, 5, 7, 9, 11]`; degrees `1, 2, 3, 4, 5, 6, 7`. Copy explains this entry stores only the pitch collection and omits the maqām’s characteristic motifs and traditional practice. Reference: Al-Ghawanmeh et al., “Arab music improvisation corpus for research (AMICOR): development and machine translation experiments” (2026), §2.1, Figure 1, https://link.springer.com/article/10.1007/s10579-026-09905-z.
 
@@ -25,3 +25,7 @@ Updated the catalog and hard-coded theory tests for pattern IDs, labels, collect
 ## Scope
 
 Only the catalog, its named hard-coded theory tests, and the minimal interval-degree mapping were changed. The unrelated untracked `.ignore` file was left untouched. No push or publication was performed.
+
+## Citation correction
+
+Corrected the Romanian reference from the PDF’s internal line/page numbering to the published pagination: the Bihor pitch set is on p. 370, Figure 3 (published pp. 369–375). Updated the catalog citation and entry above. The focused catalog test and `git diff --check` passed. Commit: `Correct Romanian catalog citation`.

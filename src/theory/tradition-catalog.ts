@@ -35,7 +35,7 @@ export const traditionPatterns: readonly TraditionPattern[] = [
     representationNote: 'This equal-tempered example stores the source’s F–G–B–C–D collection as root-relative intervals. It represents one Bihor example and does not reproduce modal cadence, melodic behavior, or a traditional performance.',
     sources: [
       {
-        title: 'Adrian Roşu, Types of modal cadences in Romanian folklore (2023), pp. 61–65',
+        title: 'Adrian Roşu, Types of modal cadences in Romanian folklore (2023), p. 370, Fig. 3',
         url: 'https://icc-online.arte-ct.ro/vol_09/34.pdf',
         supportsPattern: true,
       },
