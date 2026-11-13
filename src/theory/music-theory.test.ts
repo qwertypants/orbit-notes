@@ -65,32 +65,32 @@ describe('topic note membership', () => {
 })
 
 describe('catalog pattern resolution', () => {
-  it('transposes the Ryukyu song scale in catalog order with step links', () => {
-    const result = resolveTopic({ topic: 'scales', root: 7, culturalPatternId: 'ryukyu-song-scale' })
+  it('transposes the Bihor pitch collection in catalog order with step links', () => {
+    const result = resolveTopic({ topic: 'scales', root: 7, culturalPatternId: 'bihor-hemitonic-pentatonic' })
 
     expect(result).toEqual({
-      topic: 'scales', root: 7, preset: 'ryukyu-song-scale', label: 'Ryukyu song scale',
+      topic: 'scales', root: 7, preset: 'bihor-hemitonic-pentatonic', label: 'Bihor hemitonic pentatonic (F–G–B–C–D)',
       notes: [
         { pitchClass: 7, semitonesFromRoot: 0, interval: 'R', degree: '1' },
-        { pitchClass: 11, semitonesFromRoot: 4, interval: 'M3', degree: '3' },
-        { pitchClass: 0, semitonesFromRoot: 5, interval: 'P4', degree: '4' },
+        { pitchClass: 9, semitonesFromRoot: 2, interval: 'M2', degree: '2' },
+        { pitchClass: 1, semitonesFromRoot: 6, interval: 'TT', degree: '♯4' },
         { pitchClass: 2, semitonesFromRoot: 7, interval: 'P5', degree: '5' },
-        { pitchClass: 6, semitonesFromRoot: 11, interval: 'M7', degree: '7' },
+        { pitchClass: 4, semitonesFromRoot: 9, interval: 'M6', degree: '6' },
       ],
       links: [
-        { from: 7, to: 11, kind: 'step' },
-        { from: 11, to: 0, kind: 'step' },
-        { from: 0, to: 2, kind: 'step' },
-        { from: 2, to: 6, kind: 'step' },
+        { from: 7, to: 9, kind: 'step' },
+        { from: 9, to: 1, kind: 'step' },
+        { from: 1, to: 2, kind: 'step' },
+        { from: 2, to: 4, kind: 'step' },
       ],
     })
   })
 
-  it('transposes the Bhūpālī ascending svara set without changing its degrees or order', () => {
-    const result = resolveTopic({ topic: 'scales', root: 10, culturalPatternId: 'bhupali-svara-set' })
+  it('transposes C gōng mode without changing its degrees or order', () => {
+    const result = resolveTopic({ topic: 'scales', root: 10, culturalPatternId: 'chinese-c-gong-mode' })
 
     expect(result).toEqual({
-      topic: 'scales', root: 10, preset: 'bhupali-svara-set', label: 'Bhūpālī, ascending svara set',
+      topic: 'scales', root: 10, preset: 'chinese-c-gong-mode', label: 'C gōng mode',
       notes: [
         { pitchClass: 10, semitonesFromRoot: 0, interval: 'R', degree: '1' },
         { pitchClass: 0, semitonesFromRoot: 2, interval: 'M2', degree: '2' },
@@ -113,8 +113,8 @@ describe('catalog pattern resolution', () => {
   })
 
   it('rejects selecting a catalog scale as an arpeggio', () => {
-    expect(() => resolveTopic({ topic: 'arpeggios', root: 0, culturalPatternId: 'ryukyu-song-scale' }))
-      .toThrow(new RangeError('Cultural pattern ryukyu-song-scale has kind scale and cannot resolve as arpeggios'))
+    expect(() => resolveTopic({ topic: 'arpeggios', root: 0, culturalPatternId: 'bihor-hemitonic-pentatonic' }))
+      .toThrow(new RangeError('Cultural pattern bihor-hemitonic-pentatonic has kind scale and cannot resolve as arpeggios'))
   })
 })
 

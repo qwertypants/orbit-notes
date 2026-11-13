@@ -43,7 +43,7 @@ const renderers = [
 ] as const
 
 describe.each(renderers)('%s summary', (_tab, render) => {
-  it.each(['ryukyu-song-scale', 'bhupali-svara-set'])('shows %s context beside its caveat and sources', (id) => {
+  it.each(['bihor-hemitonic-pentatonic', 'chinese-c-gong-mode', 'maqam-ajam-c'])('shows %s context beside its caveat and sources', (id) => {
     const summary = createLearningSummary(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: id }))
     const container = document.createElement('div')
     render(container, summary)
@@ -57,14 +57,14 @@ describe.each(renderers)('%s summary', (_tab, render) => {
   })
 
   it('retains original context, representation limits and sources for edited notes', () => {
-    const state = toggleExplorerNote(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'bhupali-svara-set' }), 2)
+    const state = toggleExplorerNote(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'chinese-c-gong-mode' }), 2)
     const summary = createLearningSummary(state)
     const container = document.createElement('div')
     render(container, summary)
 
     expect(container.textContent).toContain('Custom notes around C')
     expect(container.textContent).toContain('C, E, G, A')
-    expect(container.textContent).toContain('Original pattern: Bhūpālī, ascending svara set.')
+    expect(container.textContent).toContain('Original pattern: C gōng mode.')
     expect(container.textContent).toContain(summary.context)
     expect(container.textContent).toContain(summary.representationNote)
     expect(created.filter(({ tagName }) => tagName === 'a').map(({ href }) => href)).toEqual(summary.sources?.map(({ url }) => url))
@@ -73,7 +73,7 @@ describe.each(renderers)('%s summary', (_tab, render) => {
   it('keeps catalog copy as text and excludes malformed or non-HTTP(S) source URLs', () => {
     const text = '<img src=x onerror=alert(1)>'
     const source = { title: text, supportsPattern: true }
-    const summary = { ...createLearningSummary(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'bhupali-svara-set' })),
+    const summary = { ...createLearningSummary(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'chinese-c-gong-mode' })),
       context: text, explanation: text, representationNote: text,
       sources: ['javascript:alert(1)', 'data:text/html,bad', 'not a url', 'https://example.com/', 'http://example.com/'].map((url) => ({ ...source, url })),
     }
@@ -90,9 +90,9 @@ describe.each(renderers)('%s summary', (_tab, render) => {
 
   it('clears the previous catalog attribution when a standard preset is selected', () => {
     const container = document.createElement('div')
-    render(container, createLearningSummary(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'bhupali-svara-set' })))
+    render(container, createLearningSummary(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'chinese-c-gong-mode' })))
     render(container, createLearningSummary(createExplorerState({ topic: 'scales', root: 0, preset: 'major' })))
-    expect(container.textContent).not.toContain('Bhūpālī')
+    expect(container.textContent).not.toContain('gōng')
     expect(container.textContent).not.toContain('Sources:')
   })
 })

@@ -8,8 +8,9 @@ const root = parseNoteName('C')
 
 describe('createLearningSummary', () => {
   it.each([
-    ['ryukyu-song-scale', 'Ryukyu song scale', 'Ryukyuan song traditions', 'Ryukyu Archipelago, especially Okinoerabu through Yaeyama', 'C, E, F, G, B'],
-    ['bhupali-svara-set', 'Bhūpālī, ascending svara set', 'Hindustani rāga', 'Northern Indian subcontinent', 'C, D, E, G, A'],
+    ['bihor-hemitonic-pentatonic', 'Bihor hemitonic pentatonic (F–G–B–C–D)', 'Romanian folklore', 'Bihor region, Romania', 'C, D, F♯, G, A'],
+    ['chinese-c-gong-mode', 'C gōng mode', 'Chinese traditional music', 'China', 'C, D, E, G, A'],
+    ['maqam-ajam-c', 'Maqām ʿAjam on C', 'Arab maqām tradition', 'Arab musical traditions', 'C, D, E, F, G, A, B'],
   ])('attributes %s with its ordered notes and representation limits', (id, name, traditionName, region, notes) => {
     const summary = createLearningSummary(createExplorerState({ topic: 'scales', root, culturalPatternId: id }))
     const pattern = findTraditionPattern(id)!
@@ -38,14 +39,14 @@ describe('createLearningSummary', () => {
   })
 
   it('identifies edited catalog notes as custom while retaining the source caveat', () => {
-    const state = toggleExplorerNote(createExplorerState({ topic: 'scales', root, culturalPatternId: 'bhupali-svara-set' }), parseNoteName('D'))
+    const state = toggleExplorerNote(createExplorerState({ topic: 'scales', root, culturalPatternId: 'chinese-c-gong-mode' }), parseNoteName('D'))
     const summary = createLearningSummary(state)
 
     expect(summary.title).toBe('Custom notes around C')
     expect(summary.selectedNotes).toBe('C, E, G, A')
     expect(summary.explanation).toContain('These are your selected notes')
-    expect(summary.context).toBe(findTraditionPattern('bhupali-svara-set')!.context)
-    expect(summary.representationNote).toContain('it is not a rendition of Bhūpālī')
+    expect(summary.context).toBe(findTraditionPattern('chinese-c-gong-mode')!.context)
+    expect(summary.representationNote).toContain('not identical to equal temperament')
   })
 
   it('describes chord tones by their interval from the root', () => {

@@ -98,7 +98,7 @@ export type ResolvedTopic = {
 
 const intervalLabels = ['R', 'm2', 'M2', 'm3', 'M3', 'P4', 'TT', 'P5', 'm6', 'M6', 'm7', 'M7'] as const
 const intervalByDegree: Record<string, string> = {
-  '1': 'R', '2': 'M2', '♭3': 'm3', '3': 'M3', '4': 'P4', '♭5': 'd5',
+  '1': 'R', '2': 'M2', '♭3': 'm3', '3': 'M3', '4': 'P4', '♭5': 'd5', '♯4': 'TT',
   '5': 'P5', '♯5': 'A5', '♭6': 'm6', '6': 'M6', '♭7': 'm7', '7': 'M7',
 }
 
