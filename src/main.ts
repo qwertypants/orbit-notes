@@ -21,6 +21,7 @@ import { renderTheorySummary, renderTraditionSummary } from './theory/learning-p
 import { mountNoteStaff, type NoteStaff } from './visualization/note-staff.ts'
 import { setStaffVisibility } from './visualization/staff-visibility.ts'
 import { mountExplorerMotion } from './visualization/explorer-motion.ts'
+import { mountOceanBackground } from './visualization/ocean-background.ts'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -33,6 +34,8 @@ if ('serviceWorker' in navigator) {
 const app = document.querySelector<HTMLDivElement>('#app')
 
 if (!app) throw new Error('App root was not found')
+
+const ocean = mountOceanBackground()
 
 app.innerHTML = `
   <main class="shell">
@@ -674,6 +677,7 @@ window.addEventListener('pagehide', (event) => {
     motion?.destroy()
     circle?.destroy()
     circleHud?.destroy()
+    ocean.destroy()
   }
   if (audioModulePromise) void audioModulePromise.then(({ disposeAudio }) => disposeAudio()).catch(() => {})
 })

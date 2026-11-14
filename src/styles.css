@@ -17,7 +17,20 @@ button, select { font: inherit; }
 button, select, input { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-visible, summary:focus-visible { outline: 3px solid #ffbf70; outline-offset: 3px; }
 
+/* Slow ocean backdrop: drifting color fields behind the app. Transform and
+   opacity only, so the browser keeps it on the compositor. */
+.ocean { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: radial-gradient(125% 105% at 50% -12%, #0e2b45 0%, #081726 46%, #04080f 100%); }
+.ocean-blob { position: absolute; display: block; border-radius: 50%; filter: blur(70px); opacity: .5; transform: translateZ(0); will-change: transform, opacity; }
+.ocean-blob--a { width: 80vmax; height: 80vmax; left: -24vmax; top: -28vmax; background: radial-gradient(circle at 50% 50%, rgba(26,150,166,.6), rgba(26,150,166,0) 68%); }
+.ocean-blob--b { width: 68vmax; height: 68vmax; right: -22vmax; top: -12vmax; background: radial-gradient(circle at 50% 50%, rgba(48,96,205,.55), rgba(48,96,205,0) 68%); }
+.ocean-blob--c { width: 74vmax; height: 74vmax; left: -12vmax; bottom: -32vmax; background: radial-gradient(circle at 50% 50%, rgba(20,124,112,.55), rgba(20,124,112,0) 68%); }
+.ocean-blob--d { width: 60vmax; height: 60vmax; right: -16vmax; bottom: -24vmax; background: radial-gradient(circle at 50% 50%, rgba(62,186,152,.45), rgba(62,186,152,0) 68%); }
+.ocean-surface { position: absolute; inset: -12% -12% auto; height: 58%; background: radial-gradient(88% 100% at 50% 0%, rgba(128,226,236,.14), transparent 72%); mix-blend-mode: screen; will-change: transform, opacity; }
+.ocean-veil { position: absolute; inset: 0; background: radial-gradient(122% 92% at 50% 28%, transparent 40%, rgba(3,7,14,.55) 100%); }
+
 .shell {
+  position: relative;
+  z-index: 1;
   width: min(100% - 32px, 1120px);
   margin: 0 auto;
   padding: max(0px, env(safe-area-inset-top)) max(0px, env(safe-area-inset-right)) max(0px, env(safe-area-inset-bottom)) max(0px, env(safe-area-inset-left));
