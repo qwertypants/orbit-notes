@@ -12,9 +12,21 @@
     <link rel="icon" href="%BASE_URL%icon.svg" type="image/svg+xml" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>Orbit — Music Theory Explorer</title>
+    <script>
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const recovery = setTimeout(() => {
+          if (document.documentElement.dataset.orbitBoot === 'pending') {
+            document.documentElement.dataset.orbitBoot = 'recovered'
+          }
+        }, 1200)
+        addEventListener('orbit:motion-ready', () => clearTimeout(recovery), { once: true })
+        document.documentElement.dataset.orbitBoot = 'pending'
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
+    <noscript><p>Orbit needs JavaScript to explore and play notes. Enable JavaScript, then reload.</p></noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

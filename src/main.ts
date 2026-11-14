@@ -19,6 +19,7 @@ import { createLearningSummary, noteLabelForState } from './theory/learning-summ
 import { renderTheorySummary, renderTraditionSummary } from './theory/learning-panel.ts'
 import { mountNoteStaff, type NoteStaff } from './visualization/note-staff.ts'
 import { setStaffVisibility } from './visualization/staff-visibility.ts'
+import { mountExplorerMotion } from './visualization/explorer-motion.ts'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -169,6 +170,8 @@ function activateTheoryTab(selected: HTMLButtonElement): void {
     tab.tabIndex = active ? 0 : -1
     document.getElementById(tab.getAttribute('aria-controls')!)!.hidden = !active
   })
+  const panel = document.getElementById(selected.getAttribute('aria-controls')!)!
+  motion?.reveal(panel)
 }
 
 theoryTabs.forEach((tab, index) => {
@@ -247,6 +250,7 @@ let spectrumReader: (() => Float32Array | undefined) | undefined
 let pageHidden = false
 let activeTopic: TopicId = 'scales'
 let staff: NoteStaff
+let motion: ReturnType<typeof mountExplorerMotion> | undefined
 
 function audioModule(): Promise<AudioModule> {
   audioModulePromise ??= import('./audio/audio-engine.ts').catch((error: unknown) => {
@@ -269,6 +273,7 @@ function stopCurrentPlayback(message?: string): void {
   circle?.stopSpectrum()
   circle?.clearPulses()
   staff?.clearPlayback()
+  motion?.clearPlayback()
   pendingNotePulses.length = 0
   circleHud?.stopSpectrum()
   circleHud?.clearPulses()
@@ -300,7 +305,9 @@ function syncPlaybackChoice(resetForTopic = false): void {
   }
   togetherInput.disabled = topic === 'arpeggios'
   if (topic === 'arpeggios') sequenceInput.checked = true
+  const wasHidden = patternField.hidden
   patternField.hidden = togetherInput.checked
+  if (wasHidden && !patternField.hidden) motion?.reveal(patternField)
 }
 
 function populatePresets(): void {
@@ -402,8 +409,15 @@ staffPanel.hidden = true
 staffToggle.addEventListener('click', () => {
   const visible = staffToggle.getAttribute('aria-pressed') !== 'true'
   setStaffVisibility({ panel: staffPanel, host: staffHost, row: visualizationRow, toggle: staffToggle }, visible)
+  if (visible) motion?.reveal(staffPanel)
 })
 renderSelection()
+try {
+  motion = mountExplorerMotion(app)
+} catch {
+  // Motion is optional; a failed setup leaves the explorer usable.
+  document.documentElement.dataset.orbitBoot = 'recovered'
+}
 
 // The large p5 module loads after controls and note buttons are usable.
 void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
@@ -478,6 +492,7 @@ playButton.addEventListener('click', async () => {
         if (circleHud) circleHud.pulseNote(note)
         else pendingHudNotePulses.push({ note, startedAtMs })
         staff?.startNote(note)
+        motion?.pulseNote(note)
       },
       soundSelect.value as 'triangle' | 'sine' | 'sawtooth' | 'square' | 'fmsine',
       pattern,
@@ -525,6 +540,7 @@ topicButtons.addEventListener('click', (event) => {
   populatePresets()
   syncPlaybackChoice(true)
   resetSelection()
+  motion?.sweepOrbit()
   audioStatus.textContent = `${topicName(topic)} selected.`
 })
 
@@ -559,6 +575,7 @@ window.addEventListener('pagehide', (event) => {
   if (!event.persisted) pageHidden = true
   stopCurrentPlayback()
   if (!event.persisted) {
+    motion?.destroy()
     circle?.destroy()
     circleHud?.destroy()
   }
