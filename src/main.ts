@@ -380,7 +380,21 @@ function renderCircleContext(): void {
     gap.type = 'button'
     gap.className = 'step-gap'
     const whole = Math.floor(step.semitones / 2)
-    gap.textContent = `${whole || ''}${step.semitones % 2 ? '½' : ''}`
+    const gapLabel = document.createElement('span')
+    gapLabel.className = 'step-gap-label'
+    if (whole > 0) {
+      const wholeMark = document.createElement('span')
+      wholeMark.className = 'step-whole'
+      wholeMark.textContent = String(whole)
+      gapLabel.append(wholeMark)
+    }
+    if (step.semitones % 2) {
+      const halfMark = document.createElement('span')
+      halfMark.className = 'step-half'
+      halfMark.textContent = '½'
+      gapLabel.append(halfMark)
+    }
+    gap.append(gapLabel)
     const description = `${step.note} to ${step.nextNote}: ${step.semitones === 1 ? 'half step' : step.semitones === 2 ? 'whole step' : `${step.semitones / 2} steps`} · ${step.semitones} ${step.semitones === 1 ? 'semitone' : 'semitones'}`
     gap.setAttribute('aria-label', description)
     gap.setAttribute('aria-expanded', 'false')

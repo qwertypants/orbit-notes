@@ -58,6 +58,9 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .step-note { display: inline-flex; flex-direction: column; min-width: 28px; color: #eeeaf8; font-size: 13px; line-height: 1.5; }
 .step-note small { color: #aeb0c1; font-size: 10px; }
 .step-gap { min-width: 30px; min-height: 44px; padding: 0 4px; border: 0; border-radius: 6px; background: transparent; color: #ffb969; font: inherit; cursor: pointer; }
+.step-gap-label { display: inline-block; white-space: nowrap; }
+.step-whole { color: #8ce7cf; }
+.step-half { color: #ffcf9c; }
 .step-gap::after { content: '→'; display: block; font-size: 10px; line-height: 1; opacity: .55; }
 .step-gap:hover, .step-gap[aria-expanded="true"] { background: rgba(255,185,105,.1); }
 #circle-step-detail { color: #ffcf9c; }
