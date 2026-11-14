@@ -282,6 +282,7 @@ function stopCurrentPlayback(message?: string): void {
   circle?.clearPulses()
   staff?.clearPlayback()
   motion?.clearPlayback()
+  ocean?.clearPlayback()
   pendingNotePulses.length = 0
   circleHud?.stopSpectrum()
   circleHud?.clearPulses()
@@ -571,6 +572,7 @@ playButton.addEventListener('click', async () => {
         else pendingHudNotePulses.push({ note, startedAtMs })
         staff?.startNote(note)
         motion?.pulseNote(note)
+        ocean?.pulseNote(note)
       },
       soundSelect.value as 'triangle' | 'sine' | 'sawtooth' | 'square' | 'fmsine',
       pattern,

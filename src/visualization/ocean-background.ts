@@ -1,5 +1,7 @@
-import gsap from 'gsap'
+import gsap, { CSSPlugin } from 'gsap'
 import type { PitchClass } from '../theory/music-theory.ts'
+
+gsap.registerPlugin(CSSPlugin)
 
 export const oceanRestingPalette: readonly string[] = [
   'rgba(26, 150, 166, 0.6)',
@@ -41,6 +43,9 @@ const drifts: Drift[] = [
   { from: { x: 4, y: 3, scale: 1, opacity: .44 }, to: { x: -7, y: -5, scale: 1.1, opacity: .62 }, duration: 37 },
 ]
 
+const PULSE_DURATION = 1.4
+const CLEAR_DURATION = 2
+
 const layerMarkup = `
   <span class="ocean-blob ocean-blob--a"></span>
   <span class="ocean-blob ocean-blob--b"></span>
@@ -50,7 +55,11 @@ const layerMarkup = `
   <span class="ocean-veil"></span>
 `
 
-export function mountOceanBackground(): { destroy(): void } {
+export function mountOceanBackground(): {
+  destroy(): void
+  pulseNote(note: PitchClass): void
+  clearPlayback(): void
+} {
   const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
   const layer = document.createElement('div')
   layer.className = 'ocean'
@@ -61,6 +70,7 @@ export function mountOceanBackground(): { destroy(): void } {
   const blobs = [...layer.querySelectorAll<HTMLElement>('.ocean-blob')]
   const surface = layer.querySelector<HTMLElement>('.ocean-surface')
   const tweens: gsap.core.Tween[] = []
+  const tintTweens: gsap.core.Tween[] = []
   let disposed = false
   let running = false
 
@@ -88,8 +98,31 @@ export function mountOceanBackground(): { destroy(): void } {
     running = false
     tweens.forEach((tween) => tween.kill())
     tweens.length = 0
+    tintTweens.forEach((tween) => tween.kill())
+    tintTweens.length = 0
     // Drop inline drift styles so the fields rest at their CSS base placement.
     gsap.set([...blobs, ...(surface ? [surface] : [])], { clearProps: 'all' })
+  }
+
+  function pulseNote(note: PitchClass): void {
+    if (disposed || preference.matches || document.hidden) return
+    const target = oceanPerformanceTint(note)
+    tintTweens.forEach((tween) => tween.kill())
+    tintTweens.length = 0
+    blobs.forEach((blob) => {
+      tintTweens.push(gsap.to(blob, { backgroundColor: target, duration: PULSE_DURATION, ease: 'sine.inOut' }))
+    })
+  }
+
+  function clearPlayback(): void {
+    if (disposed || preference.matches || document.hidden) return
+    tintTweens.forEach((tween) => tween.kill())
+    tintTweens.length = 0
+    blobs.forEach((blob, index) => {
+      const resting = oceanRestingPalette[index]
+      if (!resting) return
+      tintTweens.push(gsap.to(blob, { backgroundColor: resting, duration: CLEAR_DURATION, ease: 'sine.inOut' }))
+    })
   }
 
   function sync(): void {
@@ -110,5 +143,5 @@ export function mountOceanBackground(): { destroy(): void } {
     layer.remove()
   }
 
-  return { destroy }
+  return { destroy, pulseNote, clearPlayback }
 }
