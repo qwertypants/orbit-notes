@@ -22,8 +22,8 @@ function hslToRgb(hue: number, saturation: number, lightness: number): [number, 
   const hp = ((hue % 360) / 60) % 6
   const x = c * (1 - Math.abs((hp % 2) - 1))
   const m = lightness - c / 2
-  const rgb = hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x]
-  return [rgb[0] + m, rgb[1] + m, rgb[2] + m] as [number, number, number]
+  const [r, g, b]: [number, number, number] = hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x]
+  return [r + m, g + m, b + m]
 }
 
 type Drift = {
