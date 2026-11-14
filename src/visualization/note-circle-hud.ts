@@ -265,7 +265,7 @@ export function mountNoteCircleHud(options: {
     : new IntersectionObserver((entries) => {
       const entry = entries.find(({ target }) => target === options.anchor)
       if (!entry) return
-      anchorVisible = entry.isIntersecting
+      anchorVisible = entry.isIntersecting || entry.boundingClientRect.bottom > 0
       syncVisibility()
     }, { threshold: 0 })
   intersectionObserver?.observe(options.anchor)

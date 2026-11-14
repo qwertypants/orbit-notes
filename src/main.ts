@@ -512,8 +512,7 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
 
   void import('./visualization/note-circle-hud.ts').then(({ mountNoteCircleHud }) => {
     if (pageHidden) return
-    const anchor = circleHost.closest<HTMLElement>('.circle-wrap')
-    if (!anchor) return
+    const anchor = circleHost
     circleHud = mountNoteCircleHud({
       anchor,
       initialState: explorerState,
