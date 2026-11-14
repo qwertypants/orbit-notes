@@ -1,4 +1,30 @@
 import gsap from 'gsap'
+import type { PitchClass } from '../theory/music-theory.ts'
+
+export const oceanRestingPalette: readonly string[] = [
+  'rgba(26, 150, 166, 0.6)',
+  'rgba(48, 96, 205, 0.55)',
+  'rgba(20, 124, 112, 0.55)',
+  'rgba(62, 186, 152, 0.45)',
+]
+
+export function oceanPerformanceTint(note: PitchClass): string {
+  const hue = 195 + (((note + 1) % 12) * 25)
+  const saturation = 0.7
+  const lightness = 0.55 // small lift over the resting field's lightness
+  const alpha = 0.7
+  const [r, g, b] = hslToRgb(hue, saturation, lightness)
+  return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${alpha})`
+}
+
+function hslToRgb(hue: number, saturation: number, lightness: number): [number, number, number] {
+  const c = (1 - Math.abs(2 * lightness - 1)) * saturation
+  const hp = ((hue % 360) / 60) % 6
+  const x = c * (1 - Math.abs((hp % 2) - 1))
+  const m = lightness - c / 2
+  const rgb = hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x]
+  return [rgb[0] + m, rgb[1] + m, rgb[2] + m] as [number, number, number]
+}
 
 type Drift = {
   from: { x: number; y: number; scale: number; opacity: number }
