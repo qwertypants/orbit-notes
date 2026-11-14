@@ -71,14 +71,18 @@ app.innerHTML = `
             <button class="topic-button" type="button" data-topic="fifths" aria-pressed="false">Fifths</button>
           </div>
         </div>
-        <label class="control-field">
+        <div class="control-field">
           <span class="control-label">Start on</span>
+          <div class="root-stepper">
+          <button id="root-previous" class="root-step" type="button"></button>
           <select id="root-select" aria-label="Choose a root note">
             <option value="C">C</option><option value="C#">D♭</option><option value="D">D</option><option value="D#">E♭</option>
             <option value="E">E</option><option value="F">F</option><option value="F#">G♭</option><option value="G">G</option>
             <option value="G#">A♭</option><option value="A">A</option><option value="A#">B♭</option><option value="B">B</option>
           </select>
-        </label>
+          <button id="root-next" class="root-step" type="button"></button>
+          </div>
+        </div>
         <label class="control-field">
           <span class="control-label">Sound</span>
           <select id="sound-select" aria-label="Choose a sound">
@@ -544,7 +548,28 @@ topicButtons.addEventListener('click', (event) => {
   audioStatus.textContent = `${topicName(topic)} selected.`
 })
 
-rootSelect.addEventListener('change', resetSelection)
+const previousRoot = document.querySelector<HTMLButtonElement>('#root-previous')!
+const nextRoot = document.querySelector<HTMLButtonElement>('#root-next')!
+function syncRootSteps(): void {
+  const options = rootSelect.options
+  const previous = options[(rootSelect.selectedIndex + options.length - 1) % options.length]!
+  const next = options[(rootSelect.selectedIndex + 1) % options.length]!
+  previousRoot.textContent = `‹ ${previous.text}`
+  nextRoot.textContent = `${next.text} ›`
+  previousRoot.setAttribute('aria-label', `Previous root note: ${previous.text}`)
+  nextRoot.setAttribute('aria-label', `Next root note: ${next.text}`)
+}
+for (const [button, direction] of [[previousRoot, -1], [nextRoot, 1]] as const) {
+  button.addEventListener('click', () => {
+    rootSelect.selectedIndex = (rootSelect.selectedIndex + direction + rootSelect.options.length) % rootSelect.options.length
+    rootSelect.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+rootSelect.addEventListener('change', () => {
+  syncRootSteps()
+  resetSelection()
+})
+syncRootSteps()
 presetButtons.addEventListener('click', (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-preset]')
   if (!button || button.getAttribute('aria-pressed') === 'true') return
