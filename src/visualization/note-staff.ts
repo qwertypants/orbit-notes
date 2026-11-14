@@ -10,6 +10,20 @@ export type NoteStaff = {
   destroy(): void
 }
 
+export type MountNoteStaffOptions = {
+  onNoteClick?: (note: PitchClass) => void
+}
+
+/** Resolves the pitch class of a clicked staff note group, if the event hit one. */
+export function staffNotePitchFromEvent(event: { target: EventTarget | null }): PitchClass | undefined {
+  const group = (event.target as Element | null)?.closest?.('g[data-staff-note]') ?? null
+  const raw = group?.getAttribute('data-staff-note') ?? null
+  if (!group || raw === null) return undefined
+  const pitch = Number(raw)
+  if (!Number.isInteger(pitch) || pitch < 0 || pitch > 11) return undefined
+  return pitch as PitchClass
+}
+
 const lineSteps = [0, 2, 4, 6, 8]
 const stepY = (step: number) => 160 - step * 10
 
@@ -28,10 +42,15 @@ export function renderNoteStaffSvg(state: ExplorerState): string {
   return `<svg class="note-staff-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 210" role="img" aria-label="Selected notes on a treble staff" aria-describedby="staff-description"><desc id="staff-description">Selected notes are shown in octave four on a five-line treble staff.</desc><g class="staff-notation"><g class="staff-lines">${lines}</g><text class="staff-clef" x="24" y="156" aria-hidden="true">𝄞</text>${noteMarkup}</g></svg>`
 }
 
-export function mountNoteStaff(host: HTMLElement, initialState: ExplorerState): NoteStaff {
+export function mountNoteStaff(host: HTMLElement, initialState: ExplorerState, options: MountNoteStaffOptions = {}): NoteStaff {
   let state = initialState
   const activeNotes: PitchClass[] = []
   let destroyed = false
+  const handleNoteClick = (event: Event): void => {
+    const pitch = staffNotePitchFromEvent(event)
+    if (pitch === undefined) return
+    options.onNoteClick?.(pitch)
+  }
   const fitNotation = () => {
     if (destroyed) return
     const svg = host.querySelector<SVGSVGElement>('.note-staff-svg')
@@ -80,8 +99,10 @@ export function mountNoteStaff(host: HTMLElement, initialState: ExplorerState): 
   const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(fitNotation)
   observer?.observe(host)
   void host.ownerDocument?.fonts.ready.then(fitNotation)
+  host.addEventListener('click', handleNoteClick)
   return { update, startNote, endNote, clearPlayback, destroy: () => {
     destroyed = true
+    host.removeEventListener('click', handleNoteClick)
     observer?.disconnect()
     host.replaceChildren()
   } }

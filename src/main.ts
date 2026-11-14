@@ -15,7 +15,7 @@ import {
 import { defaultSelectionForTradition, selectionForTraditionPattern, traditionPatterns, type TraditionPattern } from './theory/tradition-catalog.ts'
 import type { NoteCircle } from './visualization/note-circle.ts'
 import type { NoteCircleHud } from './visualization/note-circle-hud.ts'
-import type { PlaybackMode, PlaybackPattern } from './audio/audio-engine.ts'
+import type { PlaybackMode, PlaybackPattern, SoundType } from './audio/audio-engine.ts'
 import { createLearningSummary, noteLabelForState } from './theory/learning-summary.ts'
 import { renderTheorySummary, renderTraditionSummary } from './theory/learning-panel.ts'
 import { mountNoteStaff, type NoteStaff } from './visualization/note-staff.ts'
@@ -483,7 +483,7 @@ noteButtons.addEventListener('click', (event) => {
 })
 
 renderTraditionChoices()
-staff = mountNoteStaff(staffHost, explorerState)
+staff = mountNoteStaff(staffHost, explorerState, { onNoteClick: (note) => void playStaffNote(note) })
 staffPanel.hidden = true
 staffToggle.addEventListener('click', () => {
   const visible = staffToggle.getAttribute('aria-pressed') !== 'true'
@@ -539,6 +539,51 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
   audioStatus.textContent = 'The note circle could not load. Use the note buttons to explore.'
 })
 
+function handlePlaybackNoteStart(note: PitchClass): void {
+  const startedAtMs = performance.now()
+  if (circle) circle.pulseNote(note)
+  else if (!circleLoadFailed) pendingNotePulses.push({ note, startedAtMs })
+  if (circleHud) circleHud.pulseNote(note)
+  else pendingHudNotePulses.push({ note, startedAtMs })
+  staff?.startNote(note)
+  motion?.pulseNote(note)
+  ocean?.pulseNote(note)
+}
+
+function handlePlaybackNoteEnd(note: PitchClass): void {
+  staff?.endNote(note)
+}
+
+async function playStaffNote(note: PitchClass): Promise<void> {
+  stopCurrentPlayback()
+  const request = ++playRequest
+  playButton.disabled = true
+  circlePlayButton.disabled = true
+  audioStatus.textContent = 'Waking up the sound…'
+  try {
+    const { playNotes } = await audioModule()
+    if (request !== playRequest) return
+    const started = await playNotes(
+      [note],
+      'sequence',
+      'ascending',
+      handlePlaybackNoteStart,
+      soundSelect.value as SoundType,
+      'once',
+      handlePlaybackNoteEnd,
+    )
+    if (request !== playRequest || !started) return
+    audioStatus.textContent = `Playing ${noteLabelForState(explorerState, note)}.`
+  } catch {
+    if (request === playRequest) audioStatus.textContent = 'Sound could not start. Tap Play to try again.'
+  } finally {
+    if (request === playRequest) {
+      playButton.disabled = false
+      circlePlayButton.disabled = false
+    }
+  }
+}
+
 playButton.addEventListener('click', async () => {
   if (loopingPlayback) {
     stopCurrentPlayback('Playback stopped.')
@@ -564,19 +609,10 @@ playButton.addEventListener('click', async () => {
       notes,
       mode,
       explorerState.selection.topic === 'fifths' ? 'within-octave' : 'ascending',
-      (note) => {
-        const startedAtMs = performance.now()
-        if (circle) circle.pulseNote(note)
-        else if (!circleLoadFailed) pendingNotePulses.push({ note, startedAtMs })
-        if (circleHud) circleHud.pulseNote(note)
-        else pendingHudNotePulses.push({ note, startedAtMs })
-        staff?.startNote(note)
-        motion?.pulseNote(note)
-        ocean?.pulseNote(note)
-      },
-      soundSelect.value as 'triangle' | 'sine' | 'sawtooth' | 'square' | 'fmsine',
+      handlePlaybackNoteStart,
+      soundSelect.value as SoundType,
       pattern,
-      (note) => staff?.endNote(note),
+      handlePlaybackNoteEnd,
     )
     if (request !== playRequest || !started) return
     spectrumReader = readSpectrum
