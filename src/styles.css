@@ -51,8 +51,9 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .circle-play-button:hover { filter: brightness(1.08); box-shadow: 0 0 0 11px rgba(255,191,112,.12), 0 10px 34px rgba(245,166,186,.3); }
 .circle-play-button:active { filter: brightness(.96); }
 .circle-play-button:disabled { cursor: wait; opacity: .7; }
-.circle-caption { position: absolute; bottom: -12px; left: 50%; display: flex; align-items: center; gap: 8px; color: #aeb0c1; font-size: 10px; white-space: nowrap; transform: translateX(-50%); }
-.caption-dot { width: 6px; height: 6px; border-radius: 50%; background: #ffb969; box-shadow: 0 0 12px #ffb969; }
+.circle-caption { position: absolute; top: 100%; left: 0; width: 100%; display: grid; gap: 5px; padding: 8px 12px 0; color: #aeb0c1; font-size: 11px; line-height: 1.6; text-align: center; text-transform: none; letter-spacing: .02em; overflow-wrap: anywhere; }
+.circle-caption strong { color: #eeeaf8; font-size: 13px; font-weight: 500; }
+.circle-wrap { margin-bottom: 76px; }
 .note-circle-hud {
   position: fixed;
   z-index: 20;

@@ -49,7 +49,7 @@ app.innerHTML = `
           <button id="circle-play-button" class="circle-play-button" type="button" aria-label="Play selected notes" title="Play selected notes">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" /></svg>
           </button>
-          <div class="circle-caption" aria-hidden="true"><span class="caption-dot"></span> TWELVE NOTES · ENDLESS CONNECTIONS</div>
+          <div class="circle-caption"><strong id="circle-selection-title"></strong><span id="circle-selection-details"></span></div>
         </div>
         <section class="staff-panel" aria-label="Staff visualization">
           <div id="note-staff" class="note-staff" hidden></div>
@@ -351,7 +351,16 @@ function toggleCircleNote(note: PitchClass): void {
   renderSelection()
 }
 
+function renderCircleContext(): void {
+  const summary = createLearningSummary(explorerState)
+  document.querySelector<HTMLElement>('#circle-selection-title')!.textContent = summary.title
+  const details = document.querySelector<HTMLElement>('#circle-selection-details')!
+  details.textContent = summary.traditionName ?? ''
+  details.hidden = !summary.traditionName
+}
+
 function renderSelection(): void {
+  renderCircleContext()
   const active = new Set(explorerState.activeNotes)
   const root = explorerState.selection.root
   noteButtons.replaceChildren(...Array.from({ length: 12 }, (_, index) => {
