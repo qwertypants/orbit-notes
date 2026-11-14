@@ -1,7 +1,5 @@
-import gsap, { CSSPlugin } from 'gsap'
+import gsap from 'gsap'
 import type { PitchClass } from '../theory/music-theory.ts'
-
-gsap.registerPlugin(CSSPlugin)
 
 export const oceanRestingPalette: readonly string[] = [
   'rgba(26, 150, 166, 0.6)',
@@ -94,12 +92,16 @@ export function mountOceanBackground(): {
     }
   }
 
+  function killTintTweens(): void {
+    tintTweens.forEach((tween) => tween.kill())
+    tintTweens.length = 0
+  }
+
   function stop(): void {
     running = false
     tweens.forEach((tween) => tween.kill())
     tweens.length = 0
-    tintTweens.forEach((tween) => tween.kill())
-    tintTweens.length = 0
+    killTintTweens()
     // Drop inline drift styles so the fields rest at their CSS base placement.
     gsap.set([...blobs, ...(surface ? [surface] : [])], { clearProps: 'all' })
   }
@@ -107,8 +109,7 @@ export function mountOceanBackground(): {
   function pulseNote(note: PitchClass): void {
     if (disposed || preference.matches || document.hidden) return
     const target = oceanPerformanceTint(note)
-    tintTweens.forEach((tween) => tween.kill())
-    tintTweens.length = 0
+    killTintTweens()
     blobs.forEach((blob) => {
       tintTweens.push(gsap.to(blob, { backgroundColor: target, duration: PULSE_DURATION, ease: 'sine.inOut' }))
     })
@@ -116,8 +117,7 @@ export function mountOceanBackground(): {
 
   function clearPlayback(): void {
     if (disposed || preference.matches || document.hidden) return
-    tintTweens.forEach((tween) => tween.kill())
-    tintTweens.length = 0
+    killTintTweens()
     blobs.forEach((blob, index) => {
       const resting = oceanRestingPalette[index]
       if (!resting) return
