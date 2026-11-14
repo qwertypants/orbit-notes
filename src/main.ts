@@ -50,7 +50,7 @@ app.innerHTML = `
           <button id="circle-play-button" class="circle-play-button" type="button" aria-label="Play selected notes" title="Play selected notes">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" /></svg>
           </button>
-          <div class="circle-caption"><strong id="circle-selection-title"></strong><span id="circle-selection-details"></span><span id="circle-selection-steps" class="circle-selection-steps"></span></div>
+          <div class="circle-caption"><strong id="circle-selection-title"></strong><span id="circle-selection-details"></span><div id="circle-selection-steps" class="circle-selection-steps" aria-label="Notes, degrees, and gaps in steps"></div><span id="circle-step-detail" role="status" hidden></span></div>
         </div>
         <section class="staff-panel" aria-label="Staff visualization">
           <div id="note-staff" class="note-staff" hidden></div>
@@ -358,7 +358,53 @@ function renderCircleContext(): void {
   const details = document.querySelector<HTMLElement>('#circle-selection-details')!
   details.textContent = summary.traditionName ?? ''
   details.hidden = !summary.traditionName
-  document.querySelector<HTMLElement>('#circle-selection-steps')!.textContent = selectionSteps(explorerState)
+  const host = document.querySelector<HTMLElement>('#circle-selection-steps')!
+  const explanation = document.querySelector<HTMLElement>('#circle-step-detail')!
+  explanation.hidden = true
+  explanation.textContent = ''
+  host.replaceChildren()
+  const steps = selectionSteps(explorerState)
+  if (!steps.length) host.textContent = 'No notes selected'
+  for (const step of steps) {
+    const group = document.createElement('span')
+    group.className = 'step-group'
+    const note = document.createElement('span')
+    note.className = 'step-note'
+    const name = document.createElement('span')
+    name.textContent = step.note
+    const degree = document.createElement('small')
+    degree.textContent = step.degree
+    note.setAttribute('aria-label', `${step.note}, degree ${step.degree}`)
+    note.append(name, degree)
+    const gap = document.createElement('button')
+    gap.type = 'button'
+    gap.className = 'step-gap'
+    const whole = Math.floor(step.semitones / 2)
+    gap.textContent = `${whole || ''}${step.semitones % 2 ? '½' : ''}`
+    const description = `${step.note} to ${step.nextNote}: ${step.semitones === 1 ? 'half step' : step.semitones === 2 ? 'whole step' : `${step.semitones / 2} steps`} · ${step.semitones} ${step.semitones === 1 ? 'semitone' : 'semitones'}`
+    gap.setAttribute('aria-label', description)
+    gap.setAttribute('aria-expanded', 'false')
+    gap.setAttribute('aria-controls', 'circle-step-detail')
+    gap.addEventListener('click', () => {
+      const open = gap.getAttribute('aria-expanded') !== 'true'
+      host.querySelectorAll('button').forEach((button) => button.setAttribute('aria-expanded', 'false'))
+      gap.setAttribute('aria-expanded', String(open))
+      explanation.textContent = open ? description : ''
+      explanation.hidden = !open
+    })
+    group.append(note, gap)
+    host.append(group)
+  }
+  if (steps.length) {
+    const octave = document.createElement('span')
+    octave.className = 'step-note'
+    octave.textContent = `${steps[steps.length - 1].nextNote} ↑`
+    const degree = document.createElement('small')
+    degree.textContent = '1'
+    octave.append(degree)
+    octave.setAttribute('aria-label', `${steps[steps.length - 1].nextNote}, root in the next octave`)
+    host.append(octave)
+  }
 }
 
 function renderSelection(): void {

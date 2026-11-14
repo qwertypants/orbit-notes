@@ -2,16 +2,33 @@ import { expect, test } from 'vitest'
 import { createExplorerState } from '../explorer-state.ts'
 import { selectionSteps } from './selection-steps.ts'
 
-test('major scale shows degrees, whole and half steps, and octave closure', () => {
-  expect(selectionSteps(createExplorerState({ topic: 'scales', root: 0, preset: 'major' }))).toBe('C (1) —whole step→ D (2) —whole step→ E (3) —half step→ F (4) —whole step→ G (5) —whole step→ A (6) —whole step→ B (7) —half step→ C (1, next octave)')
+test('major scale pairs notes and degrees with whole and half steps', () => {
+  const steps = selectionSteps(createExplorerState({ topic: 'scales', root: 0, preset: 'major' }))
+  expect(steps).toEqual([
+    { note: 'C', degree: '1', semitones: 2, nextNote: 'D' },
+    { note: 'D', degree: '2', semitones: 2, nextNote: 'E' },
+    { note: 'E', degree: '3', semitones: 1, nextNote: 'F' },
+    { note: 'F', degree: '4', semitones: 2, nextNote: 'G' },
+    { note: 'G', degree: '5', semitones: 2, nextNote: 'A' },
+    { note: 'A', degree: '6', semitones: 2, nextNote: 'B' },
+    { note: 'B', degree: '7', semitones: 1, nextNote: 'C' },
+  ])
 })
 
-test('chord gaps use semitones and order custom notes upward from the root', () => {
+test('custom chord notes sort upward and empty selection has no ladder', () => {
   const state = createExplorerState({ topic: 'chords', root: 0, preset: 'major' })
-  expect(selectionSteps({ ...state, activeNotes: [7, 0, 4] })).toBe('C (1) —4 semitones→ E (3) —3 semitones→ G (5) —5 semitones→ C (1, next octave)')
-  expect(selectionSteps({ ...state, activeNotes: [] })).toBe('No notes selected')
+  expect(selectionSteps({ ...state, activeNotes: [7, 0, 4] })).toEqual([
+    { note: 'C', degree: '1', semitones: 4, nextNote: 'E' },
+    { note: 'E', degree: '3', semitones: 3, nextNote: 'G' },
+    { note: 'G', degree: '5', semitones: 5, nextNote: 'C' },
+  ])
+  expect(selectionSteps({ ...state, activeNotes: [] })).toEqual([])
 })
 
-test('transposed selections wrap through C and keep altered degrees', () => {
-  expect(selectionSteps(createExplorerState({ topic: 'chords', root: 10, preset: 'minor' }))).toBe('B♭ (1) —3 semitones→ D♭ (♭3) —4 semitones→ F (5) —5 semitones→ B♭ (1, next octave)')
+test('transposition retains altered degrees and wraps to the root', () => {
+  expect(selectionSteps(createExplorerState({ topic: 'chords', root: 10, preset: 'minor' }))).toEqual([
+    { note: 'B♭', degree: '1', semitones: 3, nextNote: 'D♭' },
+    { note: 'D♭', degree: '♭3', semitones: 4, nextNote: 'F' },
+    { note: 'F', degree: '5', semitones: 5, nextNote: 'B♭' },
+  ])
 })

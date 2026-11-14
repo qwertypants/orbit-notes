@@ -53,7 +53,14 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .circle-play-button:disabled { cursor: wait; opacity: .7; }
 .circle-caption { width: 100%; display: grid; gap: 5px; padding: 8px 12px 0; color: #aeb0c1; font-size: 11px; line-height: 1.6; text-align: center; text-transform: none; letter-spacing: .02em; overflow-wrap: anywhere; }
 .circle-caption strong { color: #eeeaf8; font-size: 13px; font-weight: 500; }
-.circle-selection-steps { line-height: 1.9; }
+.circle-selection-steps { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; row-gap: 8px; margin-top: 6px; }
+.step-group { display: inline-flex; align-items: center; }
+.step-note { display: inline-flex; flex-direction: column; min-width: 28px; color: #eeeaf8; font-size: 13px; line-height: 1.5; }
+.step-note small { color: #aeb0c1; font-size: 10px; }
+.step-gap { min-width: 30px; min-height: 44px; padding: 0 4px; border: 0; border-radius: 6px; background: transparent; color: #ffb969; font: inherit; cursor: pointer; }
+.step-gap::after { content: '→'; display: block; font-size: 10px; line-height: 1; opacity: .55; }
+.step-gap:hover, .step-gap[aria-expanded="true"] { background: rgba(255,185,105,.1); }
+#circle-step-detail { color: #ffcf9c; }
 .note-circle-hud {
   position: fixed;
   z-index: 20;
