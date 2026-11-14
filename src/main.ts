@@ -56,12 +56,13 @@ app.innerHTML = `
       </div>
 
       <div class="controls" aria-label="Explorer controls">
-        <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false">
-          <span class="staff-toggle__label">Staff view</span>
-          <span class="staff-toggle__switch" aria-hidden="true"><span class="staff-toggle__thumb"></span></span>
-        </button>
         <div class="control-field explore-field">
-          <span class="control-label">Explore</span>
+          <div class="explore-heading">
+            <span class="control-label">Explore</span>
+            <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false" aria-controls="note-staff" aria-label="Show staff" title="Show staff">
+              <svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M3 7h22M3 11h22M3 15h22M3 19h22M3 23h22" opacity=".55"/><path d="M18 18V4l5 2v5"/><ellipse cx="14.5" cy="18.5" rx="3.5" ry="2.5" fill="currentColor" transform="rotate(-20 14.5 18.5)"/></svg>
+            </button>
+          </div>
           <div id="topic-buttons" class="topic-buttons" role="group" aria-label="Choose a music topic">
             <button class="topic-button" type="button" data-topic="chords" aria-pressed="false">Chords</button>
             <button class="topic-button" type="button" data-topic="scales" aria-pressed="true">Scales</button>
@@ -91,16 +92,16 @@ app.innerHTML = `
         <fieldset class="playback-choice">
           <legend class="control-label">Hear it</legend>
           <div class="segmented">
-            <label><input type="radio" name="playback" value="together" checked /><span>Together</span></label>
-            <label><input type="radio" name="playback" value="sequence" /><span>In a row</span></label>
+            <label title="Together"><input type="radio" name="playback" value="together" aria-label="Together" checked /><span><svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M18 21V4"/><ellipse cx="14" cy="9" rx="4" ry="2.5" fill="currentColor"/><ellipse cx="14" cy="15" rx="4" ry="2.5" fill="currentColor"/><ellipse cx="14" cy="21" rx="4" ry="2.5" fill="currentColor"/></svg></span></label>
+            <label title="In a row"><input type="radio" name="playback" value="sequence" aria-label="In a row" /><span><svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M8 21V10m8 7V6m8 7V2"/><ellipse cx="5" cy="21" rx="3" ry="2" fill="currentColor"/><ellipse cx="13" cy="17" rx="3" ry="2" fill="currentColor"/><ellipse cx="21" cy="13" rx="3" ry="2" fill="currentColor"/></svg></span></label>
           </div>
         </fieldset>
         <fieldset class="playback-choice" id="pattern-field">
           <legend class="control-label">Play pattern</legend>
           <div class="segmented pattern-segmented">
-            <label><input type="radio" name="playback-pattern" value="once" checked /><span>Once</span></label>
-            <label><input type="radio" name="playback-pattern" value="loop" /><span>Loop</span></label>
-            <label><input type="radio" name="playback-pattern" value="bounce" /><span>Up &amp; down</span></label>
+            <label title="Once"><input type="radio" name="playback-pattern" value="once" aria-label="Once" checked /><span><svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M4 14h17m-6-6 6 6-6 6M25 7v14"/></svg></span></label>
+            <label title="Loop"><input type="radio" name="playback-pattern" value="loop" aria-label="Loop" /><span><svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="m19 3 5 5-5 5M24 8H9a5 5 0 0 0-5 5m5 12-5-5 5-5M4 20h15a5 5 0 0 0 5-5"/></svg></span></label>
+            <label title="Up and down"><input type="radio" name="playback-pattern" value="bounce" aria-label="Up and down" /><span><svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M8 23V5m-5 5 5-5 5 5m7-5v18m-5-5 5 5 5-5"/></svg></span></label>
           </div>
         </fieldset>
         <div class="playback-buttons">

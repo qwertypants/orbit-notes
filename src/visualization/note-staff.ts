@@ -25,12 +25,25 @@ export function renderNoteStaffSvg(state: ExplorerState): string {
   }).join('')
   const width = Math.max(320, 174 + notes.length * 56)
   const lines = lineSteps.map((step) => `<line data-staff-line x1="76" y1="${stepY(step)}" x2="${width - 14}" y2="${stepY(step)}" />`).join('')
-  return `<svg class="note-staff-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 210" role="img" aria-label="Selected notes on a treble staff" aria-describedby="staff-description"><desc id="staff-description">Selected notes are shown in octave four on a five-line treble staff.</desc><g class="staff-lines">${lines}</g><text class="staff-clef" x="24" y="156" aria-hidden="true">𝄞</text>${noteMarkup}</svg>`
+  return `<svg class="note-staff-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 210" role="img" aria-label="Selected notes on a treble staff" aria-describedby="staff-description"><desc id="staff-description">Selected notes are shown in octave four on a five-line treble staff.</desc><g class="staff-notation"><g class="staff-lines">${lines}</g><text class="staff-clef" x="24" y="156" aria-hidden="true">𝄞</text>${noteMarkup}</g></svg>`
 }
 
 export function mountNoteStaff(host: HTMLElement, initialState: ExplorerState): NoteStaff {
   let state = initialState
   const activeNotes: PitchClass[] = []
+  let destroyed = false
+  const fitNotation = () => {
+    if (destroyed) return
+    const svg = host.querySelector<SVGSVGElement>('.note-staff-svg')
+    const notation = host.querySelector<SVGGElement>('.staff-notation')
+    if (!svg || !notation) return
+    const bounds = notation.getBBox()
+    if (bounds.width === 0 || bounds.height === 0) return
+    // Leave room for strokes and active-note outlines beyond the measured geometry.
+    const bleed = 2
+    const viewBox = `${bounds.x - bleed} ${bounds.y - bleed} ${bounds.width + bleed * 2} ${bounds.height + bleed * 2}`
+    if (svg.getAttribute('viewBox') !== viewBox) svg.setAttribute('viewBox', viewBox)
+  }
   const updateLabel = () => {
     const currentNote = [...activeNotes].reverse().find((pitch) => staffNotesForState(state).some((note) => note.pitchClass === pitch))
     const spelling = currentNote === undefined ? '' : staffNotesForState(state).find((note) => note.pitchClass === currentNote)
@@ -46,6 +59,7 @@ export function mountNoteStaff(host: HTMLElement, initialState: ExplorerState): 
     state = nextState
     host.innerHTML = `<div class="staff-current-note" aria-live="polite"></div>${renderNoteStaffSvg(state)}`
     applyActiveNotes()
+    fitNotation()
   }
   const startNote = (note: PitchClass) => {
     const currentIndex = activeNotes.indexOf(note)
@@ -63,5 +77,12 @@ export function mountNoteStaff(host: HTMLElement, initialState: ExplorerState): 
     applyActiveNotes()
   }
   update(initialState)
-  return { update, startNote, endNote, clearPlayback, destroy: () => host.replaceChildren() }
+  const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(fitNotation)
+  observer?.observe(host)
+  void host.ownerDocument?.fonts.ready.then(fitNotation)
+  return { update, startNote, endNote, clearPlayback, destroy: () => {
+    destroyed = true
+    observer?.disconnect()
+    host.replaceChildren()
+  } }
 }

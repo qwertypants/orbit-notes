@@ -57,7 +57,7 @@ class FakeElement {
   removeEventListener(type: string, listener: Listener): void { this.listeners.get(type)?.delete(listener) }
 
   dispatch(type: string, event: Record<string, unknown> = {}): void {
-    this.listeners.get(type)?.forEach((listener) => listener({ preventDefault: vi.fn(), ...event }))
+    this.listeners.get(type)?.forEach((listener) => listener({ preventDefault: vi.fn(), currentTarget: this, ...event }))
   }
 
   click(): void { this.dispatch('click') }
@@ -163,6 +163,7 @@ beforeEach(() => {
     clearTimeout,
   }
   vi.stubGlobal('window', fakeWindow)
+  vi.stubGlobal('HTMLElement', FakeElement)
   vi.stubGlobal('document', { body, createElement: vi.fn(() => new FakeElement()) })
   vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver)
 
@@ -177,6 +178,30 @@ beforeEach(() => {
 })
 
 describe('mountNoteCircleHud', () => {
+  it.each(['top-left', 'top-right', 'bottom-left', 'bottom-right'])('moves from the %s corner and releases its pointer capture', (corner) => {
+    const hud = mountNoteCircleHud({ anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
+    const root = currentHud()
+    const handles = root.children.filter((child) => child.className.includes('note-circle-hud__drag'))
+    expect(handles.length).toBe(4)
+    const handle = handles.find((child) => child.className.includes(`--${corner}`))!
+    expect(handle.tabIndex).toBe(0)
+    expect(handle.getAttribute('aria-label')).toContain(corner)
+    handle.dispatch('pointerdown', makePointerEvent(9, 100, 100))
+    expect(handle.hasPointerCapture(9)).toBe(true)
+    fakeWindow.dispatch('pointermove', makePointerEvent(9, 100, 600))
+    expect(root.style.top).toBe('516px')
+    fakeWindow.dispatch('pointerup', makePointerEvent(9, 100, 600))
+    expect(handle.hasPointerCapture(9)).toBe(false)
+    expect(savedStop).toBe('bottom-right')
+    handle.dispatch('keydown', { key: 'ArrowLeft' })
+    expect(savedStop).toBe('bottom-left')
+    hud.destroy()
+    for (const grip of handles) {
+      expect(grip.listeners.get('pointerdown')?.size).toBe(0)
+      expect(grip.listeners.get('keydown')?.size).toBe(0)
+    }
+  })
+
   it('starts hidden and appears only on a small viewport while the anchor is outside view', () => {
     const anchor = new FakeElement()
     const hud = mountNoteCircleHud({ anchor: anchor as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
@@ -185,7 +210,7 @@ describe('mountNoteCircleHud', () => {
 
     expect(handle.getAttribute('role')).toBe('group')
     expect(handle.tabIndex).toBe(0)
-    expect(handle.getAttribute('aria-label')).toBe('Move note circle. Drag or use arrow keys.')
+    expect(handle.getAttribute('aria-label')).toBe('Move note circle from top-left corner. Drag or use arrow keys.')
     expect(root.classList.contains('is-visible')).toBe(false)
     expect(root.getAttribute('aria-hidden')).toBe('true')
     FakeIntersectionObserver.instance.emit(anchor as unknown as Element, false)
@@ -215,20 +240,20 @@ describe('mountNoteCircleHud', () => {
     hud.startSpectrum(readSpectrum)
     hud.stopSpectrum()
     noteCallback(5)
-    currentHud().children[2].click()
+    currentHud().children.find((child) => child.className === 'note-circle-hud__play')!.click()
 
     expect(circle.update).toHaveBeenCalledWith(nextState)
     expect(circle.startSpectrum).toHaveBeenCalledWith(readSpectrum)
     expect(circle.stopSpectrum).toHaveBeenCalledOnce()
     expect(onNoteToggle).toHaveBeenCalledWith(5)
     expect(onPlay).toHaveBeenCalledOnce()
-    expect(currentHud().children[2].getAttribute('aria-label')).toBe('Play selected notes')
+    expect(currentHud().children.find((child) => child.className === 'note-circle-hud__play')!.getAttribute('aria-label')).toBe('Play selected notes')
     hud.destroy()
   })
 
   it('starts with an accessible play label, title, and icon', () => {
     const hud = mountNoteCircleHud({ anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
-    const button = currentHud().children[2]
+    const button = currentHud().children.find((child) => child.className === 'note-circle-hud__play')!
 
     expect(button.getAttribute('aria-label')).toBe('Play selected notes')
     expect(button.title).toBe('Play selected notes')
@@ -240,7 +265,7 @@ describe('mountNoteCircleHud', () => {
   it('switches to an accessible stop action and restores play when playback stops', () => {
     const onPlay = vi.fn()
     const hud = mountNoteCircleHud({ anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay })
-    const button = currentHud().children[2]
+    const button = currentHud().children.find((child) => child.className === 'note-circle-hud__play')!
     const playIcon = button.innerHTML
 
     hud.setPlaybackActive(true)
@@ -289,8 +314,8 @@ describe('mountNoteCircleHud', () => {
     const hud = mountNoteCircleHud({ anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
     const root = currentHud()
     const handle = root.children[0]
-    const circleHost = root.children[1]
-    const playButton = root.children[2]
+    const circleHost = root.children.find((child) => child.className === 'note-circle-hud__circle')!
+    const playButton = root.children.find((child) => child.className === 'note-circle-hud__play')!
     const initialLeft = root.style.left
 
     circleHost.dispatch('pointerdown', makePointerEvent(1, 100, 100))

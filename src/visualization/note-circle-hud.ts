@@ -32,12 +32,15 @@ export function mountNoteCircleHud(options: {
   root.setAttribute('aria-hidden', 'true')
   root.inert = true
 
-  const dragHandle = document.createElement('div')
-  dragHandle.className = 'note-circle-hud__drag'
-  dragHandle.setAttribute('role', 'group')
-  dragHandle.tabIndex = 0
-  dragHandle.setAttribute('aria-label', 'Move note circle. Drag or use arrow keys.')
-  dragHandle.title = 'Drag to move the note circle or focus it and use the arrow keys'
+  const dragHandles = ['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => {
+    const handle = document.createElement('div')
+    handle.className = `note-circle-hud__drag note-circle-hud__drag--${corner}`
+    handle.setAttribute('role', 'group')
+    handle.tabIndex = 0
+    handle.setAttribute('aria-label', `Move note circle from ${corner} corner. Drag or use arrow keys.`)
+    handle.title = 'Drag to move the note circle or focus it and use the arrow keys'
+    return handle
+  })
 
   const circleHost = document.createElement('div')
   circleHost.className = 'note-circle-hud__circle'
@@ -55,7 +58,7 @@ export function mountNoteCircleHud(options: {
   }
   setPlaybackActive(false)
 
-  root.append(dragHandle, circleHost, playButton)
+  root.append(...dragHandles, circleHost, playButton)
   document.body.append(root)
 
   const safeAreaProbe = document.createElement('div')
@@ -93,6 +96,7 @@ export function mountNoteCircleHud(options: {
   let anchorVisible = true
   let smallViewport = media.matches
   let pointerId: number | undefined
+  let activeDragHandle: HTMLElement | undefined
   let dragOrigin: { pointerX: number; pointerY: number; left: number; top: number } | undefined
   let snapTimer: number | undefined
   let destroyed = false
@@ -116,7 +120,7 @@ export function mountNoteCircleHud(options: {
 
   function hudSize(): { width: number; height: number } {
     const rect = root.getBoundingClientRect()
-    return { width: rect.width || 184, height: rect.height || 202 }
+    return { width: rect.width || 204, height: rect.height || 204 }
   }
 
   function setPosition(left: number, top: number): void {
@@ -189,7 +193,8 @@ export function mountNoteCircleHud(options: {
     if (pointerId !== event.pointerId || !dragOrigin) return
     pointerId = undefined
     dragOrigin = undefined
-    if (dragHandle.hasPointerCapture(event.pointerId)) dragHandle.releasePointerCapture(event.pointerId)
+    if (activeDragHandle?.hasPointerCapture(event.pointerId)) activeDragHandle.releasePointerCapture(event.pointerId)
+    activeDragHandle = undefined
 
     const rect = root.getBoundingClientRect()
     const viewport = viewportSize()
@@ -199,7 +204,8 @@ export function mountNoteCircleHud(options: {
   }
 
   const onPointerDown = (event: PointerEvent) => {
-    if (!event.isPrimary || event.button !== 0 || destroyed) return
+    if (!event.isPrimary || event.button !== 0 || destroyed || pointerId !== undefined) return
+    if (!(event.currentTarget instanceof HTMLElement)) return
     event.preventDefault()
     const rect = root.getBoundingClientRect()
     pointerId = event.pointerId
@@ -209,7 +215,8 @@ export function mountNoteCircleHud(options: {
       window.clearTimeout(snapTimer)
       snapTimer = undefined
     }
-    dragHandle.setPointerCapture(event.pointerId)
+    activeDragHandle = event.currentTarget
+    activeDragHandle.setPointerCapture(event.pointerId)
   }
 
   const onPointerMove = (event: PointerEvent) => {
@@ -243,8 +250,10 @@ export function mountNoteCircleHud(options: {
     syncVisibility()
   }
 
-  dragHandle.addEventListener('pointerdown', onPointerDown)
-  dragHandle.addEventListener('keydown', onKeyDown)
+  dragHandles.forEach((handle) => {
+    handle.addEventListener('pointerdown', onPointerDown)
+    handle.addEventListener('keydown', onKeyDown)
+  })
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('pointercancel', onPointerUp)
@@ -286,8 +295,11 @@ export function mountNoteCircleHud(options: {
       destroyed = true
       intersectionObserver?.disconnect()
       media.removeEventListener('change', onMediaChange)
-      dragHandle.removeEventListener('pointerdown', onPointerDown)
-      dragHandle.removeEventListener('keydown', onKeyDown)
+      dragHandles.forEach((handle) => {
+        handle.removeEventListener('pointerdown', onPointerDown)
+        handle.removeEventListener('keydown', onKeyDown)
+      })
+      if (pointerId !== undefined && activeDragHandle?.hasPointerCapture(pointerId)) activeDragHandle.releasePointerCapture(pointerId)
       playButton.removeEventListener('click', options.onPlay)
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)

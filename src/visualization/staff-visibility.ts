@@ -10,4 +10,6 @@ export function setStaffVisibility({ panel, host, row, toggle }: StaffVisibility
   host.hidden = !visible
   row.classList.toggle('staff-visible', visible)
   toggle.setAttribute('aria-pressed', String(visible))
+  toggle.setAttribute('aria-label', visible ? 'Hide staff' : 'Show staff')
+  toggle.setAttribute('title', visible ? 'Hide staff' : 'Show staff')
 }
