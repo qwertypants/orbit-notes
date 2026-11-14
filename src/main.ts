@@ -73,7 +73,7 @@ app.innerHTML = `
           </div>
         </div>
         <div class="control-field">
-          <span class="control-label">Start on</span>
+          <span class="control-label">Root</span>
           <div class="root-stepper">
           <button id="root-previous" class="root-step" type="button"></button>
           <select id="root-select" aria-label="Choose a root note">
