@@ -1,3 +1,4 @@
+import { selectionSteps } from './theory/selection-steps.ts'
 import './styles.css'
 import { activeNotesInOrder, createExplorerState, toggleExplorerNote } from './explorer-state.ts'
 import {
@@ -49,7 +50,7 @@ app.innerHTML = `
           <button id="circle-play-button" class="circle-play-button" type="button" aria-label="Play selected notes" title="Play selected notes">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" /></svg>
           </button>
-          <div class="circle-caption"><strong id="circle-selection-title"></strong><span id="circle-selection-details"></span></div>
+          <div class="circle-caption"><strong id="circle-selection-title"></strong><span id="circle-selection-details"></span><span id="circle-selection-steps" class="circle-selection-steps"></span></div>
         </div>
         <section class="staff-panel" aria-label="Staff visualization">
           <div id="note-staff" class="note-staff" hidden></div>
@@ -357,6 +358,7 @@ function renderCircleContext(): void {
   const details = document.querySelector<HTMLElement>('#circle-selection-details')!
   details.textContent = summary.traditionName ?? ''
   details.hidden = !summary.traditionName
+  document.querySelector<HTMLElement>('#circle-selection-steps')!.textContent = selectionSteps(explorerState)
 }
 
 function renderSelection(): void {
