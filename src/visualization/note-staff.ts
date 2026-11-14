@@ -35,7 +35,8 @@ export function renderNoteStaffSvg(state: ExplorerState): string {
     const accidental = note.accidental
       ? `<text class="staff-accidental" x="${x - 19}" y="${stepY(note.staffStep) + 5}" text-anchor="end">${note.accidental}</text>`
       : ''
-    return `<g class="staff-note" role="img" data-staff-note="${note.pitchClass}" aria-label="${label}"><title>${label}</title>${accidental}<ellipse class="staff-notehead" cx="${x}" cy="${stepY(note.staffStep)}" rx="8" ry="5.5" transform="rotate(-18 ${x} ${stepY(note.staffStep)})" />${note.staffStep <= -2 ? `<line class="staff-ledger" x1="${x - 14}" y1="${stepY(note.staffStep)}" x2="${x + 14}" y2="${stepY(note.staffStep)}" />` : ''}</g>`
+    const hitArea = `<ellipse class="staff-hit-area" cx="${x}" cy="${stepY(note.staffStep)}" rx="16" ry="12" fill="transparent" />`
+    return `<g class="staff-note" role="img" data-staff-note="${note.pitchClass}" aria-label="${label}"><title>${label}</title>${accidental}${hitArea}<ellipse class="staff-notehead" cx="${x}" cy="${stepY(note.staffStep)}" rx="8" ry="5.5" transform="rotate(-18 ${x} ${stepY(note.staffStep)})" />${note.staffStep <= -2 ? `<line class="staff-ledger" x1="${x - 14}" y1="${stepY(note.staffStep)}" x2="${x + 14}" y2="${stepY(note.staffStep)}" />` : ''}</g>`
   }).join('')
   const width = Math.max(320, 174 + notes.length * 56)
   const lines = lineSteps.map((step) => `<line data-staff-line x1="76" y1="${stepY(step)}" x2="${width - 14}" y2="${stepY(step)}" />`).join('')

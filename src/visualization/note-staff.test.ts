@@ -33,6 +33,14 @@ describe('renderNoteStaffSvg', () => {
     expect(markup).toContain('<title>C4</title>')
   })
 
+  it('renders a larger invisible hit area for each staff note', () => {
+    const markup = renderNoteStaffSvg(stateWithNotes('C', 'E', 'G'))
+
+    expect(markup.match(/staff-hit-area/g)).toHaveLength(3)
+    expect(markup).toContain('class="staff-hit-area"')
+    expect(markup).toContain('rx="16"')
+  })
+
   it('replaces removed notes and reflects current state spelling', () => {
     const first = renderNoteStaffSvg(stateWithNotes('C', 'E', 'G'))
     const next = renderNoteStaffSvg(stateWithNotes('B♭'))
