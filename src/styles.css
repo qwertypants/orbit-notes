@@ -52,7 +52,7 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .staff-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: #393345; }
 .control-icon { display: block; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .note-staff { min-width: 0; touch-action: manipulation; }
-.staff-current-note { position: absolute; right: 10px; bottom: 5px; color: #f5f3ff; font-size: 11px; line-height: 1; font-weight: 650; }
+.staff-current-note { position: absolute; left: 10px; top: 5px; color: #f5f3ff; font-size: 11px; line-height: 1; font-weight: 650; }
 .note-staff-svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: manipulation; }
 .staff-lines line, .staff-ledger { stroke: rgba(245,243,255,.78); stroke-width: 1.2; }
 .staff-clef { fill: #ffbf70; font-family: serif; font-size: 88px; }
