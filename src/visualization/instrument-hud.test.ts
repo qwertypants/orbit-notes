@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createExplorerState } from '../explorer-state.ts'
+import { createExplorerState, selectRelativeMinor } from '../explorer-state.ts'
 import { mountInstrumentHud } from './instrument-hud.ts'
 import type { HudCoordinator, HudRegistration } from './hud-coordinator.ts'
 
@@ -21,6 +21,7 @@ class FakeElement {
   append(...children: FakeElement[]) { children.forEach(child => { child.parent = this; this.children.push(child) }) }
   addEventListener(name: string, fn: () => void) { const set = this.listeners.get(name) ?? new Set(); set.add(fn); this.listeners.set(name, set) }
   removeEventListener(name: string, fn: () => void) { this.listeners.get(name)?.delete(fn) }
+  focus() {}
   click() { this.listeners.get('click')?.forEach(fn => fn()) }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); this.parent = undefined }
 }
@@ -71,6 +72,18 @@ describe('instrument HUD', () => {
     expect(toggle.getAttribute('aria-label')).toBe('Show piano')
   })
 
+  it('shows scope copy and updates the visible resolved-root legend', () => {
+    const { hud } = setup('guitar')
+    const root = body.children[0]
+    expect(root.children[2].textContent).toContain('Note locations · standard tuning · frets 0–4; not a chord fingering.')
+    expect(root.children[2].textContent).toContain('Top: high E (1); bottom: low E (6).')
+    const minor = selectRelativeMinor(createExplorerState({ topic: 'fifths', root: 0 }), 9)
+    hud.update(minor)
+    expect(root.children[3].textContent).toBe('White outline: root A.')
+    hud.update({ ...minor, activeNotes: [] })
+    expect(root.children[3].textContent).toBe('Root A is not selected; no root outline.')
+  })
+
   it('renders a display-only guitar reference with a single drag handle', () => {
     setup('guitar')
     const root = body.children[0]
@@ -78,4 +91,14 @@ describe('instrument HUD', () => {
     expect(root.children[1].innerHTML).not.toContain('<button')
     expect(root.children[0].children[1].tabIndex).toBe(0)
   })
+})
+
+it.each(['piano', 'guitar'] as const)('hides %s from its header and can reopen', kind => {
+  const { toggle, registration } = setup(kind)
+  toggle.click()
+  body.children[0].children[0].children[2].click()
+  expect(toggle.getAttribute('aria-pressed')).toBe('false')
+  expect(registration.setVisible).toHaveBeenLastCalledWith(false)
+  toggle.click()
+  expect(registration.setVisible).toHaveBeenLastCalledWith(true)
 })

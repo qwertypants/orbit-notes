@@ -1,5 +1,5 @@
 import type { ExplorerState } from '../explorer-state.ts'
-import { renderInstrumentSvg } from './instrument-svg.ts'
+import { instrumentRootLegend, renderInstrumentSvg } from './instrument-svg.ts'
 import type { InstrumentKind } from './instrument-notes.ts'
 import type { HudCoordinator, HudRegistration } from './hud-coordinator.ts'
 
@@ -31,11 +31,24 @@ export function mountInstrumentHud(options: {
   handle.setAttribute('role', 'group')
   handle.setAttribute('aria-label', `Move ${kind} HUD. Drag or use arrow keys.`)
   handle.title = 'Drag to move or focus and use arrow keys'
-  header.append(title, handle)
+  const hide = document.createElement('button')
+  hide.type = 'button'
+  hide.className = 'instrument-hud__hide'
+  hide.textContent = 'Hide'
+  hide.setAttribute('aria-label', `Hide ${kind}`)
+  header.append(title, handle, hide)
   const content = document.createElement('div')
   content.className = 'instrument-hud__content'
   content.innerHTML = renderInstrumentSvg(kind, options.initialState)
-  root.append(header, content)
+  const scope = document.createElement('p')
+  scope.className = 'instrument-hud__scope'
+  scope.textContent = kind === 'guitar'
+    ? 'Note locations · standard tuning · frets 0–4; not a chord fingering. Top: high E (1); bottom: low E (6).'
+    : 'Orange note badges mark selected keys. Pitch classes C–C; playback may use another octave.'
+  const legend = document.createElement('p')
+  legend.className = 'instrument-hud__legend'
+  legend.textContent = instrumentRootLegend(options.initialState)
+  root.append(header, content, scope, legend)
   document.body.append(root)
 
   const placement: HudRegistration = coordinator.register({
@@ -56,17 +69,23 @@ export function mountInstrumentHud(options: {
   const onToggle = () => { visible = !visible; syncToggle() }
   toggle.setAttribute('aria-controls', root.id)
   toggle.addEventListener('click', onToggle)
+  const onHide = () => { visible = false; syncToggle(); toggle.focus() }
+  hide.addEventListener('click', onHide)
   syncToggle()
 
   let destroyed = false
   return {
     update(state) {
-      if (!destroyed) content.innerHTML = renderInstrumentSvg(kind, state)
+      if (!destroyed) {
+        content.innerHTML = renderInstrumentSvg(kind, state)
+        legend.textContent = instrumentRootLegend(state)
+      }
     },
     destroy() {
       if (destroyed) return
       destroyed = true
       toggle.removeEventListener('click', onToggle)
+      hide.removeEventListener('click', onHide)
       placement.destroy()
       root.remove()
       visible = false

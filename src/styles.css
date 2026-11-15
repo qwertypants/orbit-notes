@@ -325,7 +325,7 @@ button, .segmented label, summary { scale: var(--press-scale, none); }
 .view-toggle:hover { background: rgba(255,255,255,.11); }
 .view-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: #393345; }
 .view-toggle:focus-visible, .instrument-hud__drag:focus-visible { outline: 3px solid #ffbf70; outline-offset: 2px; }
-.instrument-hud { position: fixed; z-index: 21; box-sizing: border-box; width: min(240px, calc(100vw - 32px)); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; color: #f5f3ff; background: rgba(25,27,41,.96); box-shadow: 0 12px 38px rgba(0,0,0,.42); opacity: 0; visibility: hidden; pointer-events: none; }
+.instrument-hud { position: fixed; z-index: 21; box-sizing: border-box; width: min(288px, calc(100vw - 32px)); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; color: #f5f3ff; background: rgba(25,27,41,.96); box-shadow: 0 12px 38px rgba(0,0,0,.42); opacity: 0; visibility: hidden; pointer-events: none; }
 .instrument-hud.is-visible { opacity: 1; visibility: visible; pointer-events: auto; }
 .instrument-hud__header { display: flex; height: 44px; align-items: center; justify-content: space-between; padding: 0 4px 0 12px; color: #c7c8d8; font-size: 12px; }
 .instrument-hud__drag { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 10px; cursor: grab; touch-action: none; }
@@ -334,15 +334,15 @@ button, .segmented label, summary { scale: var(--press-scale, none); }
 .instrument-svg { display: block; width: 100%; height: auto; overflow: visible; }
 .piano-key--white { fill: #e9e6e0; stroke: #5a5862; stroke-width: 1; }
 .piano-key--black { fill: #292a37; stroke: #8a8793; stroke-width: 1; }
-.instrument-svg--piano [data-selected="true"] .piano-key--white { fill: #ffc17b; }
-.instrument-svg--piano [data-selected="true"] .piano-key--black { fill: #f4a7bc; }
+.instrument-svg--piano .piano-selection-marker { fill: #ffbf70; stroke: #211d26; stroke-width: 1; }
+.instrument-svg--piano [data-root="true"] .piano-selection-marker { stroke: #fff; stroke-width: 2; }
 .instrument-svg--piano [data-root="true"] rect { stroke: #fff; stroke-width: 2; }
-.instrument-note-label { fill: #211d26; font: 9px system-ui,sans-serif; }
+.instrument-note-label { fill: #211d26; font: 10px system-ui,sans-serif; }
 .guitar-string { stroke: rgba(225,225,238,.52); stroke-width: 1; }
 .guitar-nut, .guitar-fret { stroke: rgba(225,225,238,.72); stroke-width: 2; }
 .guitar-note-dot { fill: #ffc17b; stroke: #282431; stroke-width: 1; }
 [data-root="true"] .guitar-note-dot { stroke: #fff; stroke-width: 2; }
-.guitar-string-label, .guitar-fret-label { fill: #c7c8d8; font: 8px system-ui,sans-serif; }
+.guitar-string-label, .guitar-fret-label { fill: #c7c8d8; font: 9px system-ui,sans-serif; }
 
 
 .hud-stack > :not(.is-visible) { display: none; }
@@ -357,3 +357,10 @@ button, .segmented label, summary { scale: var(--press-scale, none); }
 
 /* Keep the rotating orbit decoration inside its circle's paint boundary. */
 .circle-wrap { overflow: clip; overflow-clip-margin: 4px; }
+
+.instrument-hud__scope, .instrument-hud__legend { margin: 0; padding: 0 12px 10px; color: #dadbe7; font-size: 12px; line-height: 1.4; }
+
+.instrument-hud__header > span { margin-right: auto; }
+.instrument-hud__hide { min-width: 44px; min-height: 44px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.instrument-hud__hide:hover { background: rgba(255,255,255,.1); }
+.instrument-hud__hide:focus-visible { outline: 3px solid #ffbf70; outline-offset: -3px; }

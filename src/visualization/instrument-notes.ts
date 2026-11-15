@@ -18,7 +18,7 @@ function describe(state: ExplorerState, pitchClass: PitchClass): InstrumentNote 
     pitchClass,
     label: noteLabelForState(state, pitchClass),
     selected,
-    root: selected && pitchClass === state.selection.root,
+    root: selected && pitchClass === state.resolved.root,
   }
 }
 
