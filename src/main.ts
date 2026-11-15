@@ -290,6 +290,8 @@ function stopCurrentPlayback(message?: string): void {
   circle?.stopSpectrum()
   circle?.clearPulses()
   staff?.clearPlayback()
+  pianoHud?.clearPlayback()
+  guitarHud?.clearPlayback()
   motion?.clearPlayback()
   ocean?.clearPlayback()
   pendingNotePulses.length = 0
@@ -569,12 +571,16 @@ function handlePlaybackNoteStart(note: PitchClass): void {
   if (circleHud) circleHud.pulseNote(note)
   else pendingHudNotePulses.push({ note, startedAtMs })
   staff?.startNote(note)
+  pianoHud?.startNote(note)
+  guitarHud?.startNote(note)
   motion?.pulseNote(note)
   ocean?.pulseNote(note)
 }
 
 function handlePlaybackNoteEnd(note: PitchClass): void {
   staff?.endNote(note)
+  pianoHud?.endNote(note)
+  guitarHud?.endNote(note)
 }
 
 async function playStaffNote(note: PitchClass): Promise<void> {

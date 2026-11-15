@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { createExplorerState, selectRelativeMinor, toggleExplorerNote, type ExplorerState } from '../explorer-state.ts'
 import type { PitchClass } from '../theory/music-theory.ts'
-import { guitarNotesForState, pianoNotesForState } from './instrument-notes.ts'
+import { guitarPlaybackPosition, guitarNotesForState, pianoNotesForState } from './instrument-notes.ts'
 
 const stateWith = (...activeNotes: PitchClass[]): ExplorerState => ({
   ...createExplorerState({ topic: 'fifths', root: 0 }), activeNotes,
@@ -98,4 +98,12 @@ it.each([
 ])('uses literal state-aware spellings on both instruments', (state, labels) => {
   expect(pianoNotesForState(state).map((note) => note.label)).toEqual(labels)
   for (const note of guitarNotesForState(state)) expect(note.label).toBe(labels[note.pitchClass])
+})
+
+it.each(allPitches)('chooses the lowest-fret representative for pitch %i', pitch => {
+  const positions = guitarNotesForState(stateWith())
+  const picked = guitarPlaybackPosition(positions, pitch)!
+  expect(picked.pitchClass).toBe(pitch)
+  expect(picked.fret).toBe(Math.min(...positions.filter(p => p.pitchClass === pitch).map(p => p.fret)))
+  expect(picked.string).toBe(Math.min(...positions.filter(p => p.pitchClass === pitch && p.fret === picked.fret).map(p => p.string)))
 })

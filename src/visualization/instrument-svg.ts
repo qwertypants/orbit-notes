@@ -25,6 +25,7 @@ function labelFit(label: string, width: number): string {
 }
 
 function renderPiano(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>): string {
+  const sounding = [...soundingNotes].map(note => noteLabelForState(state, note)).join(', ') || 'none'
   const keys = pianoNotesForState(state)
   const whiteIndices = [0, 2, 4, 5, 7, 9, 11, 12]
   const blackIndices = [1, 3, 6, 8, 10]
@@ -40,10 +41,11 @@ function renderPiano(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass
     const label = key.selected ? `<circle class="piano-selection-marker" cx="${x + 10.5}" cy="28" r="10"/><text class="instrument-note-label" x="${x + 10.5}" y="32" text-anchor="middle"${labelFit(key.label, 18)}>${escapeXml(key.label)}</text>` : ''
     return `<g data-key-index="${index}" data-selected="${key.selected}" data-root="${key.root}" data-playing="${soundingNotes.has(key.pitchClass) && key.index < 12}"><rect class="piano-key piano-key--black" x="${x}" y="1" width="21" height="45"/>${label}</g>`
   }).join('')
-  return `<svg class="instrument-svg instrument-svg--piano" viewBox="0 0 224 76" role="img" aria-label="Piano pitch-class reference, C through C, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))}"><title>Piano pitch-class reference</title><desc>Pitch classes across C–C, not the register or voicing of playback. Selected notes: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))}</desc>${white}${black}</svg>`
+  return `<svg class="instrument-svg instrument-svg--piano" viewBox="0 0 224 76" role="img" aria-label="Piano pitch-class reference, C through C, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}."><title>Piano pitch-class reference</title><desc>Pitch classes across C–C, not the register or voicing of playback. Selected notes: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}.</desc>${white}${black}</svg>`
 }
 
 function renderGuitar(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>): string {
+  const sounding = [...soundingNotes].map(note => noteLabelForState(state, note)).join(', ') || 'none'
   const positions = guitarNotesForState(state)
   const playingPositions = new Set([...soundingNotes].flatMap(note => {
     const position = guitarPlaybackPosition(positions, note)
@@ -66,7 +68,7 @@ function renderGuitar(state: ExplorerState, soundingNotes: ReadonlySet<PitchClas
   const fretLabels = [1, 2, 3, 4].map((fret) => `<text class="guitar-fret-label" x="${[65, 107, 149, 191][fret - 1]}" y="10" text-anchor="middle">${fret}</text>`).join('')
   const strings = Array.from({ length: 6 }, (_, row) => `<line class="guitar-string" x1="44" y1="${28 + row * 24}" x2="212" y2="${28 + row * 24}"/>`).join('')
   const frets = [86, 128, 170, 212].map((x) => `<line class="guitar-fret" x1="${x}" y1="28" x2="${x}" y2="148"/>`).join('')
-  return `<svg class="instrument-svg instrument-svg--guitar" viewBox="-5 0 229 162" role="img" aria-label="Standard tuning guitar, open strings through fret 4, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))}"><title>Standard tuning guitar reference</title><desc>Note locations in standard tuning, frets 0–4; not a chord fingering. Top: high E, string 1. Bottom: low E, string 6. ${escapeXml(instrumentRootLegend(state))} Selected positions: ${positions.filter((position) => position.selected).map((position) => `string ${position.string}, fret ${position.fret}, ${position.label}`).join('; ') || 'none'}.</desc>${fretLabels}${strings}<line class="guitar-nut" x1="44" y1="28" x2="44" y2="148"/>${frets}${rows}</svg>`
+  return `<svg class="instrument-svg instrument-svg--guitar" viewBox="-5 0 229 162" role="img" aria-label="Standard tuning guitar, open strings through fret 4, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}."><title>Standard tuning guitar reference</title><desc>Note locations in standard tuning, frets 0–4; not a chord fingering. Top: high E, string 1. Bottom: low E, string 6. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}. Selected positions: ${positions.filter((position) => position.selected).map((position) => `string ${position.string}, fret ${position.fret}, ${position.label}`).join('; ') || 'none'}.</desc>${fretLabels}${strings}<line class="guitar-nut" x1="44" y1="28" x2="44" y2="148"/>${frets}${rows}</svg>`
 }
 
 export function renderInstrumentSvg(kind: InstrumentKind, state: ExplorerState, soundingNotes: ReadonlySet<PitchClass> = new Set()): string {

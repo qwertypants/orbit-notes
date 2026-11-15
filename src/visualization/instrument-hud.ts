@@ -1,9 +1,10 @@
+import type { PitchClass } from '../theory/music-theory.ts'
 import type { ExplorerState } from '../explorer-state.ts'
 import { instrumentRootLegend, renderInstrumentSvg } from './instrument-svg.ts'
 import type { InstrumentKind } from './instrument-notes.ts'
 import type { HudCoordinator, HudRegistration } from './hud-coordinator.ts'
 
-export type InstrumentHud = { update(state: ExplorerState): void; destroy(): void }
+export type InstrumentHud = { update(state: ExplorerState): void; startNote(note: PitchClass): void; endNote(note: PitchClass): void; clearPlayback(): void; destroy(): void }
 
 export function mountInstrumentHud(options: {
   kind: InstrumentKind
@@ -45,6 +46,7 @@ export function mountInstrumentHud(options: {
   scope.textContent = kind === 'guitar'
     ? 'Note locations · standard tuning · frets 0–4; not a chord fingering. Top: high E (1); bottom: low E (6).'
     : 'Orange note badges mark selected keys. Pitch classes C–C; playback may use another octave.'
+  scope.textContent += ' Cyan with a dashed outline: sounding note.'
   const legend = document.createElement('p')
   legend.className = 'instrument-hud__legend'
   legend.textContent = instrumentRootLegend(options.initialState)
@@ -73,17 +75,38 @@ export function mountInstrumentHud(options: {
   hide.addEventListener('click', onHide)
   syncToggle()
 
+  let currentState = options.initialState
+  const soundingNotes = new Set<PitchClass>()
   let destroyed = false
+  const render = () => {
+    if (destroyed) return
+    content.innerHTML = renderInstrumentSvg(kind, currentState, soundingNotes)
+    legend.textContent = instrumentRootLegend(currentState)
+  }
   return {
     update(state) {
-      if (!destroyed) {
-        content.innerHTML = renderInstrumentSvg(kind, state)
-        legend.textContent = instrumentRootLegend(state)
-      }
+      if (destroyed) return
+      currentState = state
+      render()
+    },
+    startNote(note) {
+      if (destroyed || soundingNotes.has(note)) return
+      soundingNotes.add(note)
+      render()
+    },
+    endNote(note) {
+      if (destroyed || !soundingNotes.delete(note)) return
+      render()
+    },
+    clearPlayback() {
+      if (destroyed || soundingNotes.size === 0) return
+      soundingNotes.clear()
+      render()
     },
     destroy() {
       if (destroyed) return
       destroyed = true
+      soundingNotes.clear()
       toggle.removeEventListener('click', onToggle)
       hide.removeEventListener('click', onHide)
       placement.destroy()

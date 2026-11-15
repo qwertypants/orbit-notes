@@ -102,3 +102,24 @@ it.each(['piano', 'guitar'] as const)('hides %s from its header and can reopen',
   toggle.click()
   expect(registration.setVisible).toHaveBeenLastCalledWith(true)
 })
+
+it.each(['piano', 'guitar'] as const)('tracks %s playback across hiding, updates, release and stop', kind => {
+  const { hud, toggle } = setup(kind)
+  const content = body.children[0].children[1]
+  const count = () => (content.innerHTML.match(/data-playing="true"/g) ?? []).length
+  hud.startNote(0); hud.startNote(4)
+  expect(count()).toBe(2)
+  toggle.click()
+  hud.update(createExplorerState({ topic: 'fifths', root: 0 }))
+  expect(count()).toBe(2)
+  hud.endNote(0)
+  expect(count()).toBe(1)
+  toggle.click(); hud.endNote(4); toggle.click()
+  expect(count()).toBe(0)
+  hud.startNote(7); hud.clearPlayback()
+  expect(count()).toBe(0)
+  hud.destroy()
+  const before = content.innerHTML
+  hud.startNote(0); hud.endNote(4); hud.clearPlayback()
+  expect(content.innerHTML).toBe(before)
+})
