@@ -3,7 +3,7 @@ import { createExplorerState, type ExplorerState } from '../explorer-state.ts'
 import type { PitchClass } from '../theory/music-theory.ts'
 import { mountNoteCircleHud } from './note-circle-hud.ts'
 import { mountNoteCircle, type NoteCircle } from './note-circle.ts'
-import type { HudCoordinator, HudRegistration } from './hud-coordinator.ts'
+import { createHudCoordinator, type HudCoordinator, type HudRegistration } from './hud-coordinator.ts'
 
 vi.mock('./note-circle.ts', () => ({ mountNoteCircle: vi.fn() }))
 
@@ -35,6 +35,10 @@ class FakeElement {
   title = ''
   type = ''
   tabIndex = -1
+  width = 184
+  height = 202
+  focus(): void { (document as unknown as { activeElement: FakeElement }).activeElement = this }
+  removeAttribute(name: string): void { this.attributes.delete(name) }
   hidden = false
   inert = false
   parent: FakeElement | undefined
@@ -73,8 +77,8 @@ class FakeElement {
   getBoundingClientRect(): DOMRect {
     const left = Number.parseFloat(this.style.left ?? '0') || 0
     const top = Number.parseFloat(this.style.top ?? '0') || 0
-    const width = 184
-    const height = 202
+    const width = this.width
+    const height = this.height
     return { left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) } as DOMRect
   }
 
@@ -275,13 +279,16 @@ describe('mountNoteCircleHud', () => {
     const content = root.children[4]
     const toggle = root.children[5]
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    toggle.focus()
     toggle.click()
+    expect(document.activeElement).toBe(toggle)
     expect(content.hidden).toBe(true)
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(toggle.innerHTML).toContain('<rect')
     hud.setPlaybackActive(true)
     hud.update(state)
     toggle.click()
+    expect(document.activeElement).toBe(toggle)
     expect(content.hidden).toBe(false)
     expect(root.children.slice(0, 4)).toEqual(handles)
     expect(content.children[1].getAttribute('aria-label')).toBe('Stop playback')
@@ -297,5 +304,45 @@ describe('mountNoteCircleHud', () => {
     expect(circle.destroy).toHaveBeenCalledOnce()
     expect(body.children).toHaveLength(0)
     expect(mediaListeners.size).toBe(0)
+  })
+})
+
+
+describe('real HUD coordinator size changes', () => {
+  it.each(['pointer', 'keyboard'])('preserves moved pixels on restore and clamps when necessary (%s)', method => {
+    let resize = () => {}
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: () => void) { resize = callback }
+      observe() {} unobserve() {} disconnect() {}
+    })
+    fakeWindow.innerWidth = 800
+    const coordinator = createHudCoordinator()
+    const root = new FakeElement()
+    root.width = 96
+    root.height = 96
+    const handle = new FakeElement()
+    root.append(handle)
+    const placement = coordinator.register({ id: 'circle', root: root as unknown as HTMLElement, handles: [handle as unknown as HTMLElement], preferred: 'top-right', storageKey: 'test' })
+    placement.setVisible(true)
+    if (method === 'keyboard') handle.dispatch('keydown', { key: 'ArrowLeft' })
+    else {
+      handle.dispatch('pointerdown', { pointerId: 1, isPrimary: true, button: 0, clientX: 0, clientY: 0 })
+      fakeWindow.dispatch('pointermove', { pointerId: 1, clientX: -300, clientY: 80 })
+      fakeWindow.dispatch('pointerup', { pointerId: 1 })
+    }
+    const left = Number.parseFloat(root.style.left)
+    const top = root.style.top
+    root.width = 292
+    root.height = 292
+    resize()
+    expect(Number.parseFloat(root.style.left)).toBe(Math.min(left, 800 - 16 - 292))
+    expect(root.style.top).toBe(top)
+    root.width = 96
+    resize()
+    const beforeResize = Number.parseFloat(root.style.left)
+    fakeWindow.innerWidth = 1000
+    fakeWindow.dispatch('resize', {})
+    expect(Number.parseFloat(root.style.left)).toBeGreaterThan(beforeResize)
+    coordinator.destroy()
   })
 })

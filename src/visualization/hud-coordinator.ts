@@ -55,10 +55,13 @@ export function createHudCoordinator(options: { storage?: Pick<Storage, 'getItem
     } catch { /* Ignore invalid or inaccessible preferences. */ }
     return target
   }
+  let previousBounds: HudRect | undefined
   function layout(repack = false): void {
     if (destroyed) return
     const visible = [...entries.values()].filter(entry => entry.visible)
     const bounds = getBounds()
+    const viewportChanged = !previousBounds || Object.keys(bounds).some(key => bounds[key as keyof HudRect] !== previousBounds![key as keyof HudRect])
+    previousBounds = bounds
     // Measure in floating mode, not at a width imposed by the compact stack.
     entries.forEach(entry => { document.body.append(entry.root); entry.handles.forEach(handle => {
       handle.removeAttribute('aria-disabled'); handle.removeAttribute('aria-description')
@@ -68,7 +71,7 @@ export function createHudCoordinator(options: { storage?: Pick<Storage, 'getItem
       const r = getRect(entry)
       const preferred = getHudStopPosition(entry.preferred, bounds.width + bounds.left, bounds.height + bounds.top, r.width, r.height, { left: bounds.left, top: bounds.top, right: 0, bottom: 0 })
       const current = { ...r, left: Number.parseFloat(entry.root.style.left) || preferred.left, top: Number.parseFloat(entry.root.style.top) || preferred.top }
-      const next = placeHud(preference(entry, current, bounds), bounds, placed, gap)
+      const next = placeHud(viewportChanged || !entry.root.style.left ? preference(entry, current, bounds) : current, bounds, placed, gap)
       if (next) placed.push(next)
       return next
     })
