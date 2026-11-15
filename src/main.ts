@@ -21,6 +21,8 @@ import { renderTheorySummary, renderTraditionSummary } from './theory/learning-p
 import { mountNoteStaff, type NoteStaff } from './visualization/note-staff.ts'
 import { setStaffVisibility } from './visualization/staff-visibility.ts'
 import { mountExplorerMotion } from './visualization/explorer-motion.ts'
+import { mountInstrumentHud, type InstrumentHud } from './visualization/instrument-hud.ts'
+import { createHudCoordinator } from './visualization/hud-coordinator.ts'
 import { mountOceanBackground } from './visualization/ocean-background.ts'
 
 if ('serviceWorker' in navigator) {
@@ -64,9 +66,13 @@ app.innerHTML = `
         <div class="control-field explore-field">
           <div class="explore-heading">
             <span class="control-label">Explore</span>
-            <button id="staff-toggle" class="staff-toggle" type="button" aria-pressed="false" aria-controls="note-staff" aria-label="Show staff" title="Show staff">
+            <div class="visualization-toggles" role="group" aria-label="Note views">
+            <button id="staff-toggle" class="staff-toggle view-toggle" type="button" aria-pressed="false" aria-controls="note-staff" aria-label="Show staff" title="Show staff">
               <svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M3 7h22M3 11h22M3 15h22M3 19h22M3 23h22" opacity=".55"/><path d="M18 18V4l5 2v5"/><ellipse cx="14.5" cy="18.5" rx="3.5" ry="2.5" fill="currentColor" transform="rotate(-20 14.5 18.5)"/></svg>
             </button>
+            <button id="piano-toggle" class="view-toggle" type="button" aria-pressed="false" aria-controls="piano-hud" aria-label="Show piano" title="Show piano"><svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><rect x="3" y="5" width="22" height="18" rx="2" fill="none"/><path d="M8.5 15v8M14 15v8M19.5 15v8"/><path d="M7 5h3v10H7zM12.5 5h3v10h-3zM18 5h3v10h-3z" fill="currentColor" stroke="none"/></svg></button>
+            <button id="guitar-toggle" class="view-toggle" type="button" aria-pressed="false" aria-controls="guitar-hud" aria-label="Show guitar" title="Show guitar"><svg class="control-icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="m15 12 7-8 3 3-8 7c2 4 0 9-4 10-4 1-9-3-9-7 0-4 3-6 7-5 1 0 2 0 4 0Z" fill="none"/><circle cx="11" cy="17" r="2.5" fill="none"/><path d="m12.5 15.5 10-10M7 20l3 2"/></svg></button>
+            </div>
           </div>
           <div id="topic-buttons" class="topic-buttons" role="group" aria-label="Choose a music topic">
             <button class="topic-button" type="button" data-topic="chords" aria-pressed="false">Chords</button>
@@ -254,6 +260,9 @@ const pendingNotePulses: { note: PitchClass; startedAtMs: number }[] = []
 const pendingHudNotePulses: { note: PitchClass; startedAtMs: number }[] = []
 const notePulseDurationMs = 500
 let circleHud: NoteCircleHud | undefined
+let pianoHud: InstrumentHud | undefined
+let guitarHud: InstrumentHud | undefined
+const hudCoordinator = createHudCoordinator()
 let spectrumReader: (() => Float32Array | undefined) | undefined
 let pageHidden = false
 let activeTopic: TopicId = 'scales'
@@ -458,6 +467,8 @@ function renderSelection(): void {
   staff?.update(explorerState)
   circle?.update(explorerState)
   circleHud?.update(explorerState)
+  pianoHud?.update(explorerState)
+  guitarHud?.update(explorerState)
 }
 
 function renderTheoryPanel(): void {
@@ -483,6 +494,8 @@ noteButtons.addEventListener('click', (event) => {
 })
 
 renderTraditionChoices()
+ pianoHud = mountInstrumentHud({ kind: 'piano', initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#piano-toggle')!, coordinator: hudCoordinator })
+guitarHud = mountInstrumentHud({ kind: 'guitar', initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#guitar-toggle')!, coordinator: hudCoordinator })
 staff = mountNoteStaff(staffHost, explorerState, { onNoteClick: (note) => void playStaffNote(note) })
 staffPanel.hidden = true
 staffToggle.addEventListener('click', () => {
@@ -516,6 +529,7 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
     circleHud = mountNoteCircleHud({
       anchor,
       initialState: explorerState,
+      coordinator: hudCoordinator,
       onNoteToggle: toggleCircleNote,
       onPlay: () => playButton.click(),
     })
@@ -714,6 +728,9 @@ window.addEventListener('pagehide', (event) => {
     motion?.destroy()
     circle?.destroy()
     circleHud?.destroy()
+    pianoHud?.destroy()
+    guitarHud?.destroy()
+    hudCoordinator.destroy()
     ocean.destroy()
   }
   if (audioModulePromise) void audioModulePromise.then(({ disposeAudio }) => disposeAudio()).catch(() => {})

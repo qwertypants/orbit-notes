@@ -35,7 +35,7 @@ function renderGuitar(state: ExplorerState): string {
   const positions = guitarNotesForState(state)
   const rows = positions.filter((position) => position.fret === 0).map((open) => {
     const y = 22 + (open.string - 1) * 18
-    const label = `<text class="guitar-string-label" x="9" y="${y + 3}" text-anchor="middle">${['E', 'A', 'D', 'G', 'B', 'E'][open.string - 1]}</text>`
+    const label = `<text class="guitar-string-label" x="9" y="${y + 3}" text-anchor="middle">${['E', 'B', 'G', 'D', 'A', 'E'][open.string - 1]}</text>`
     const openDot = open.selected ? `<g data-guitar-position="${open.string}-${open.fret}" data-selected="true" data-root="${open.root}"><circle class="guitar-note-dot" cx="28" cy="${y}" r="8"/><text class="instrument-note-label" x="28" y="${y + 3}" text-anchor="middle">${escapeXml(open.label)}</text></g>` : `<g data-guitar-position="${open.string}-${open.fret}" data-selected="false" data-root="false"/>`
     const frets = positions.filter((position) => position.string === open.string && position.fret > 0).map((position) => {
       const x = [65, 107, 149, 191][position.fret - 1]
