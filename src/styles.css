@@ -1,7 +1,13 @@
 :root {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: #f5f3ff;
-  background: #10121c;
+  /* Mirrors the .ocean gradient so any region the fixed backdrop fails to
+     cover (viewport resize during scroll, overscroll) blends in seamlessly
+     instead of showing a hard dark seam. */
+  background-color: #04080f;
+  background-image: linear-gradient(180deg, #0e2b45 0%, #081726 46%, #04080f 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 100vh;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -19,7 +25,10 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 
 /* Slow ocean backdrop: drifting color fields behind the app. Transform and
    opacity only, so the browser keeps it on the compositor. */
-.ocean { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: radial-gradient(125% 105% at 50% -12%, #0e2b45 0%, #081726 46%, #04080f 100%); }
+/* Bleeds past the viewport (dynamic-viewport units, with a vh fallback) so the
+   backdrop still covers the screen when iOS resizes the layout viewport while
+   the toolbar collapses during scroll. */
+.ocean { position: fixed; inset: -10vh 0; inset: -10dvh 0; z-index: 0; overflow: hidden; pointer-events: none; background: radial-gradient(125% 105% at 50% -12%, #0e2b45 0%, #081726 46%, #04080f 100%); }
 .ocean-blob { position: absolute; display: block; border-radius: 50%; filter: blur(70px); opacity: .5; transform: translateZ(0); will-change: transform, opacity; }
 .ocean-blob--a { width: 80vmax; height: 80vmax; left: -24vmax; top: -28vmax; background: rgba(26, 150, 166, 0.6); }
 .ocean-blob--b { width: 68vmax; height: 68vmax; right: -22vmax; top: -12vmax; background: rgba(48, 96, 205, 0.55); }
