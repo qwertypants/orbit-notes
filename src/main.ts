@@ -1,3 +1,4 @@
+import { loadPreferences, savePreferences } from './preferences.ts'
 import { selectionSteps } from './theory/selection-steps.ts'
 import './styles.css'
 import { activeNotesInOrder, createExplorerState, selectRelativeMinor, toggleExplorerNote } from './explorer-state.ts'
@@ -175,6 +176,9 @@ const theoryTabs = [...document.querySelectorAll<HTMLButtonElement>('.theory-tab
 const traditionButtons = document.querySelector<HTMLDivElement>('#tradition-buttons')!
 const traditionPatternButtons = document.querySelector<HTMLDivElement>('#tradition-patterns')!
 const traditionSummary = document.querySelector<HTMLDivElement>('#tradition-summary')!
+const savedPreferences = loadPreferences()
+let preferencesReady = false
+const theoryPanel = document.querySelector<HTMLDetailsElement>('.theory-panel')!
 let culturalPattern: TraditionPattern | undefined = defaultSelectionForTradition('western-tonal-theory', 0)?.pattern
 let browsedTraditionId = culturalPattern?.traditionId
 
@@ -363,7 +367,45 @@ function topicSelection(): TopicSelection {
 
 populatePresets()
 syncPlaybackChoice(true)
-let explorerState = createExplorerState(topicSelection())
+let explorerState = savedPreferences?.state ?? createExplorerState(topicSelection())
+if (savedPreferences) {
+  activeTopic = explorerState.selection.topic
+  const selection = explorerState.selection
+  culturalPattern = 'culturalPatternId' in selection
+    ? traditionPatterns.find(pattern => pattern.id === selection.culturalPatternId)
+    : undefined
+  browsedTraditionId = savedPreferences.browsedTraditionId ?? culturalPattern?.traditionId
+  rootSelect.selectedIndex = explorerState.resolved.root
+  soundSelect.value = savedPreferences.sound
+  populatePresets()
+  if ('preset' in explorerState.selection) {
+    const preset = explorerState.selection.preset
+    presetButtons.querySelectorAll<HTMLButtonElement>('button[data-preset]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.preset === preset))
+    })
+  }
+  togetherInput.checked = savedPreferences.playback === 'together'
+  sequenceInput.checked = savedPreferences.playback === 'sequence'
+  patternInputs.forEach(input => { input.checked = input.value === savedPreferences.pattern })
+  syncPlaybackChoice()
+  theoryPanel.open = savedPreferences.theoryOpen
+}
+
+function persistPreferences(): void {
+  if (!preferencesReady) return
+  savePreferences({
+    state: explorerState,
+    sound: soundSelect.value as SoundType,
+    playback: sequenceInput.checked ? 'sequence' : 'together',
+    pattern: patternInputs.find(input => input.checked)!.value as PlaybackPattern,
+    staffVisible: staffToggle.getAttribute('aria-pressed') === 'true',
+    pianoVisible: document.querySelector('#piano-toggle')!.getAttribute('aria-pressed') === 'true',
+    guitarVisible: document.querySelector('#guitar-toggle')!.getAttribute('aria-pressed') === 'true',
+    theoryOpen: theoryPanel.open,
+    theoryTab: document.querySelector('#traditions-tab')!.getAttribute('aria-selected') === 'true' ? 'traditions' : 'theory',
+    browsedTraditionId,
+  })
+}
 function toggleCircleNote(note: PitchClass): void {
   explorerState = toggleExplorerNote(explorerState, note)
   stopCurrentPlayback('Selection changed. Press Play to hear it.')
@@ -372,7 +414,7 @@ function toggleCircleNote(note: PitchClass): void {
 
 function selectMinor(root: PitchClass): void {
   explorerState = selectRelativeMinor(explorerState, root)
-  rootSelect.value = noteName(root, 'flat')
+  rootSelect.selectedIndex = root
   syncRootSteps()
   stopCurrentPlayback('Selection changed. Press Play to hear it.')
   renderSelection()
@@ -448,7 +490,7 @@ function renderCircleContext(): void {
 }
 
 function renderSelection(): void {
-  rootSelect.value = noteName(explorerState.resolved.root, 'flat')
+  rootSelect.selectedIndex = explorerState.resolved.root
   renderCircleContext()
   const active = new Set(explorerState.activeNotes)
   const root = explorerState.resolved.root
@@ -483,6 +525,7 @@ function renderSelection(): void {
   circleHud?.update(explorerState)
   pianoHud?.update(explorerState)
   guitarHud?.update(explorerState)
+  persistPreferences()
 }
 
 function renderTheoryPanel(): void {
@@ -517,7 +560,17 @@ staffToggle.addEventListener('click', () => {
   setStaffVisibility({ panel: staffPanel, host: staffHost, row: visualizationRow, toggle: staffToggle }, visible)
   if (visible) motion?.reveal(staffPanel)
 })
+if (savedPreferences) {
+  setStaffVisibility({ panel: staffPanel, host: staffHost, row: visualizationRow, toggle: staffToggle }, savedPreferences.staffVisible)
+  if (savedPreferences.pianoVisible) document.querySelector<HTMLButtonElement>('#piano-toggle')!.click()
+  if (savedPreferences.guitarVisible) document.querySelector<HTMLButtonElement>('#guitar-toggle')!.click()
+  activateTheoryTab(document.querySelector<HTMLButtonElement>(`#${savedPreferences.theoryTab}-tab`)!)
+}
 renderSelection()
+preferencesReady = true
+// Save after control handlers, including Hide buttons in the floating views.
+for (const event of ['click', 'change', 'keydown']) document.addEventListener(event, persistPreferences)
+theoryPanel.addEventListener('toggle', persistPreferences)
 try {
   motion = mountExplorerMotion(app)
 } catch {
@@ -744,6 +797,7 @@ patternInputs.forEach((input) => {
 })
 
 window.addEventListener('pagehide', (event) => {
+  persistPreferences()
   if (!event.persisted) pageHidden = true
   stopCurrentPlayback()
   if (!event.persisted) {
