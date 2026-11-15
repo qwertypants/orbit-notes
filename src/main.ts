@@ -97,6 +97,7 @@ app.innerHTML = `
           <span class="control-label">Sound</span>
           <select id="sound-select" aria-label="Choose a sound">
             <option value="triangle">Soft</option><option value="sine">Pure</option><option value="sawtooth">Bright</option>
+            <option value="piano">Piano</option><option value="guitar">Guitar</option>
             <option value="square">Retro</option><option value="fmsine">Bell</option>
           </select>
         </label>
