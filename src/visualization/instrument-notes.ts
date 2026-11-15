@@ -38,3 +38,8 @@ export function guitarNotesForState(state: ExplorerState): GuitarPosition[] {
       fret,
     })))
 }
+
+export function guitarPlaybackPosition(positions: readonly GuitarPosition[], note: PitchClass): GuitarPosition | undefined {
+  return positions.filter(position => position.pitchClass === note)
+    .sort((a, b) => a.fret - b.fret || a.string - b.string)[0]
+}

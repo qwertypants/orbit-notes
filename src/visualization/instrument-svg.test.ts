@@ -72,3 +72,19 @@ it('fits double-accidental labels inside black keys and guitar markers', () => {
   expect(renderInstrumentSvg('piano', state)).toContain('textLength="18" lengthAdjust="spacingAndGlyphs">F𝄫</text>')
   expect(renderInstrumentSvg('guitar', state)).toContain('textLength="21" lengthAdjust="spacingAndGlyphs">F𝄫</text>')
 })
+
+it('highlights one representative position per sounding note independently of selection', () => {
+  for (const kind of ['piano', 'guitar'] as const) {
+    const svg = renderInstrumentSvg(kind, stateWith(), new Set<PitchClass>([0, 4]))
+    expect(svg.match(/data-playing="true"/g)).toHaveLength(2)
+    expect(renderInstrumentSvg(kind, stateWith(0, 4))).not.toContain('data-playing="true"')
+    if (kind === 'piano') {
+      expect(svg).toMatch(/data-key-index="0"[^>]*data-playing="true"/)
+      expect(svg).toMatch(/data-key-index="12"[^>]*data-playing="false"/)
+    } else {
+      expect(svg).toMatch(/data-guitar-position="2-1"[^>]*data-playing="true"/)
+      expect(svg).toMatch(/data-guitar-position="1-0"[^>]*data-playing="true"/)
+      expect(svg).toMatch(/data-guitar-position="6-0"[^>]*data-playing="false"/)
+    }
+  }
+})

@@ -1,6 +1,7 @@
+import type { PitchClass } from '../theory/music-theory.ts'
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
 import { noteLabelForState } from '../theory/learning-summary.ts'
-import { guitarNotesForState, pianoNotesForState, type InstrumentKind } from './instrument-notes.ts'
+import { guitarPlaybackPosition, guitarNotesForState, pianoNotesForState, type InstrumentKind } from './instrument-notes.ts'
 
 function escapeXml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -23,7 +24,7 @@ function labelFit(label: string, width: number): string {
   return label.length > 2 ? ` textLength="${width}" lengthAdjust="spacingAndGlyphs"` : ''
 }
 
-function renderPiano(state: ExplorerState): string {
+function renderPiano(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>): string {
   const keys = pianoNotesForState(state)
   const whiteIndices = [0, 2, 4, 5, 7, 9, 11, 12]
   const blackIndices = [1, 3, 6, 8, 10]
@@ -31,28 +32,34 @@ function renderPiano(state: ExplorerState): string {
     const key = keys[index]
     const x = position * 28
     const label = key.selected ? `<circle class="piano-selection-marker" cx="${x + 14}" cy="63" r="10"/><text class="instrument-note-label" x="${x + 14}" y="67" text-anchor="middle">${escapeXml(key.label)}</text>` : ''
-    return `<g data-key-index="${index}" data-selected="${key.selected}" data-root="${key.root}"><rect class="piano-key piano-key--white" x="${x}" y="1" width="28" height="74"/>${label}</g>`
+    return `<g data-key-index="${index}" data-selected="${key.selected}" data-root="${key.root}" data-playing="${soundingNotes.has(key.pitchClass) && key.index < 12}"><rect class="piano-key piano-key--white" x="${x}" y="1" width="28" height="74"/>${label}</g>`
   }).join('')
   const black = blackIndices.map((index, position) => {
     const key = keys[index]
     const x = [17.5, 45.5, 101.5, 129.5, 157.5][position]
     const label = key.selected ? `<circle class="piano-selection-marker" cx="${x + 10.5}" cy="28" r="10"/><text class="instrument-note-label" x="${x + 10.5}" y="32" text-anchor="middle"${labelFit(key.label, 18)}>${escapeXml(key.label)}</text>` : ''
-    return `<g data-key-index="${index}" data-selected="${key.selected}" data-root="${key.root}"><rect class="piano-key piano-key--black" x="${x}" y="1" width="21" height="45"/>${label}</g>`
+    return `<g data-key-index="${index}" data-selected="${key.selected}" data-root="${key.root}" data-playing="${soundingNotes.has(key.pitchClass) && key.index < 12}"><rect class="piano-key piano-key--black" x="${x}" y="1" width="21" height="45"/>${label}</g>`
   }).join('')
   return `<svg class="instrument-svg instrument-svg--piano" viewBox="0 0 224 76" role="img" aria-label="Piano pitch-class reference, C through C, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))}"><title>Piano pitch-class reference</title><desc>Pitch classes across C–C, not the register or voicing of playback. Selected notes: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))}</desc>${white}${black}</svg>`
 }
 
-function renderGuitar(state: ExplorerState): string {
+function renderGuitar(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>): string {
   const positions = guitarNotesForState(state)
+  const playingPositions = new Set([...soundingNotes].flatMap(note => {
+    const position = guitarPlaybackPosition(positions, note)
+    return position ? [`${position.string}-${position.fret}`] : []
+  }))
   const rows = positions.filter((position) => position.fret === 0).map((open) => {
     const y = 28 + (open.string - 1) * 24
     const label = `<text class="guitar-string-label" x="6" y="${y + 3}" text-anchor="middle">${['1 E', '2 B', '3 G', '4 D', '5 A', '6 E'][open.string - 1]}</text>`
-    const openDot = open.selected ? `<g data-guitar-position="${open.string}-${open.fret}" data-selected="true" data-root="${open.root}"><ellipse class="guitar-note-dot" cx="28" cy="${y}" rx="12" ry="10"/><text class="instrument-note-label" x="28" y="${y + 3}" text-anchor="middle"${labelFit(open.label, 21)}>${escapeXml(open.label)}</text></g>` : `<g data-guitar-position="${open.string}-${open.fret}" data-selected="false" data-root="false"/>`
+    const openPlaying = playingPositions.has(`${open.string}-${open.fret}`)
+    const openDot = open.selected || openPlaying ? `<g data-guitar-position="${open.string}-${open.fret}" data-selected="${open.selected}" data-root="${open.root}" data-playing="${openPlaying}"><ellipse class="guitar-note-dot" cx="28" cy="${y}" rx="12" ry="10"/><text class="instrument-note-label" x="28" y="${y + 3}" text-anchor="middle"${labelFit(open.label, 21)}>${escapeXml(open.label)}</text></g>` : `<g data-guitar-position="${open.string}-${open.fret}" data-selected="false" data-root="false" data-playing="false"/>`
     const frets = positions.filter((position) => position.string === open.string && position.fret > 0).map((position) => {
       const x = [65, 107, 149, 191][position.fret - 1]
-      return position.selected
-        ? `<g data-guitar-position="${position.string}-${position.fret}" data-selected="true" data-root="${position.root}"><ellipse class="guitar-note-dot" cx="${x}" cy="${y}" rx="12" ry="10"/><text class="instrument-note-label" x="${x}" y="${y + 3}" text-anchor="middle"${labelFit(position.label, 21)}>${escapeXml(position.label)}</text></g>`
-        : `<g data-guitar-position="${position.string}-${position.fret}" data-selected="false" data-root="false"/>`
+      const playing = playingPositions.has(`${position.string}-${position.fret}`)
+      return position.selected || playing
+        ? `<g data-guitar-position="${position.string}-${position.fret}" data-selected="${position.selected}" data-root="${position.root}" data-playing="${playing}"><ellipse class="guitar-note-dot" cx="${x}" cy="${y}" rx="12" ry="10"/><text class="instrument-note-label" x="${x}" y="${y + 3}" text-anchor="middle"${labelFit(position.label, 21)}>${escapeXml(position.label)}</text></g>`
+        : `<g data-guitar-position="${position.string}-${position.fret}" data-selected="false" data-root="false" data-playing="false"/>`
     }).join('')
     return `${label}${openDot}${frets}`
   }).join('')
@@ -62,6 +69,6 @@ function renderGuitar(state: ExplorerState): string {
   return `<svg class="instrument-svg instrument-svg--guitar" viewBox="-5 0 229 162" role="img" aria-label="Standard tuning guitar, open strings through fret 4, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))}"><title>Standard tuning guitar reference</title><desc>Note locations in standard tuning, frets 0–4; not a chord fingering. Top: high E, string 1. Bottom: low E, string 6. ${escapeXml(instrumentRootLegend(state))} Selected positions: ${positions.filter((position) => position.selected).map((position) => `string ${position.string}, fret ${position.fret}, ${position.label}`).join('; ') || 'none'}.</desc>${fretLabels}${strings}<line class="guitar-nut" x1="44" y1="28" x2="44" y2="148"/>${frets}${rows}</svg>`
 }
 
-export function renderInstrumentSvg(kind: InstrumentKind, state: ExplorerState): string {
-  return kind === 'piano' ? renderPiano(state) : renderGuitar(state)
+export function renderInstrumentSvg(kind: InstrumentKind, state: ExplorerState, soundingNotes: ReadonlySet<PitchClass> = new Set()): string {
+  return kind === 'piano' ? renderPiano(state, soundingNotes) : renderGuitar(state, soundingNotes)
 }
