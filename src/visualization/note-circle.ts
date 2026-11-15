@@ -79,6 +79,15 @@ export function mountNoteCircle(
     const root = relativeMinorRoot(major)
     select.append(new Option(`Select ${minorRootName(root)} minor`, String(root)))
   }
+  select.addEventListener('keydown', (event) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const last = select.options.length - 1
+    const next = event.key === 'Home' ? 1 : event.key === 'End' ? last
+      : Math.max(1, Math.min(last, select.selectedIndex + (event.key === 'ArrowDown' ? 1 : -1)))
+    select.selectedIndex = next
+    select.dispatchEvent(new Event('change'))
+  })
   select.addEventListener('change', () => {
     if (select.value !== '') onRelativeMinorSelect?.(Number(select.value) as PitchClass)
   })

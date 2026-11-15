@@ -354,3 +354,6 @@ button, .segmented label, summary { scale: var(--press-scale, none); }
 .minor-key-controls { padding: 4px; text-align: center; }
 .minor-key-controls select { max-width: 100%; min-height: 36px; }
 .minor-key-controls select:focus-visible { outline: 3px solid #ffbf70; outline-offset: 2px; }
+
+/* Keep the rotating orbit decoration inside its circle's paint boundary. */
+.circle-wrap { overflow: clip; overflow-clip-margin: 4px; }
