@@ -91,7 +91,7 @@ it('highlights one representative position per sounding note independently of se
 
 it('makes only labeled open and fretted guitar positions keyboard controls', () => {
   const svg = renderInstrumentSvg('guitar', stateWith(4))
-  const groups = [...svg.matchAll(/<g ([^>]+)>(.*?)<\/g>/g)]
+  const groups = [...svg.matchAll(/<g (data-guitar-note[^>]+)>(.*?)<\/g>/g)]
   expect(groups.length).toBeGreaterThan(0)
   for (const [, attributes, children] of groups) {
     expect(attributes).toContain('data-guitar-note="4"')
