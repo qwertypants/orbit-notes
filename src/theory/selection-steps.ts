@@ -6,12 +6,12 @@ const chromaticDegrees = ['1', '♭2', '2', '♭3', '3', '4', '♭5', '5', '♭6
 export type SelectionStep = { note: string; degree: string; semitones: number; nextNote: string }
 
 export function selectionSteps(state: ExplorerState): SelectionStep[] {
-  const root = state.selection.root
+  const root = state.resolved.root
   const offset = (pitch: number) => (pitch - root + 12) % 12
   const notes = [...state.activeNotes].sort((a, b) => offset(a) - offset(b))
   if (!notes.length) return []
   const label = (pitch: typeof root) => {
-    const degree = state.selection.topic === 'fifths'
+    const degree = state.selection.topic === 'fifths' && state.selection.minorRoot === undefined
       ? chromaticDegrees[offset(pitch)]
       : state.resolved.notes.find((note) => note.pitchClass === pitch)?.degree ?? chromaticDegrees[offset(pitch)]
     return { note: noteLabelForState(state, pitch), degree }

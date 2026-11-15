@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   circleOfFifths, enharmonicNames, fifthNeighbors, noteName, parseNoteName,
-  pitchClass, resolveTopic, transpose,
+  pitchClass, resolveTopic, transpose, relativeMinorRoot, minorRootName, type PitchClass,
 } from './music-theory.ts'
 import { defaultSelectionForTradition, selectionForTraditionPattern } from './tradition-catalog.ts'
 
@@ -157,5 +157,39 @@ describe('circle of fifths', () => {
     expect(result.notes.map((note) => note.pitchClass)).toEqual([2, 9, 4, 11, 6, 1, 8, 3, 10, 5, 0, 7])
     expect(result.links[0]).toEqual({ from: 2, to: 9, kind: 'fifth' })
     expect(result.links[11]).toEqual({ from: 7, to: 2, kind: 'fifth' })
+  })
+})
+
+
+describe('relative minor ring theory', () => {
+  const pairs: [PitchClass, PitchClass, string, PitchClass[]][] = [
+    [0, 9, 'A', [9, 11, 0, 2, 4, 5, 7]],
+    [7, 4, 'E', [4, 6, 7, 9, 11, 0, 2]],
+    [2, 11, 'B', [11, 1, 2, 4, 6, 7, 9]],
+    [9, 6, 'F♯', [6, 8, 9, 11, 1, 2, 4]],
+    [4, 1, 'C♯', [1, 3, 4, 6, 8, 9, 11]],
+    [11, 8, 'G♯', [8, 10, 11, 1, 3, 4, 6]],
+    [6, 3, 'E♭', [3, 5, 6, 8, 10, 11, 1]],
+    [1, 10, 'B♭', [10, 0, 1, 3, 5, 6, 8]],
+    [8, 5, 'F', [5, 7, 8, 10, 0, 1, 3]],
+    [3, 0, 'C', [0, 2, 3, 5, 7, 8, 10]],
+    [10, 7, 'G', [7, 9, 10, 0, 2, 3, 5]],
+    [5, 2, 'D', [2, 4, 5, 7, 9, 10, 0]],
+  ]
+
+  it('covers the twelve fifths positions in order', () => {
+    expect(pairs.map(([major]) => major)).toEqual(circleOfFifths)
+  })
+
+  it.each(pairs)('maps major pitch %i to minor pitch %i (%s)', (major, minor, name, pitches) => {
+    expect(relativeMinorRoot(major)).toBe(minor)
+    expect(minorRootName(minor)).toBe(name)
+    const resolved = resolveTopic({ topic: 'fifths', root: major, minorRoot: minor })
+    expect(resolved.topic).toBe('fifths')
+    expect(resolved.root).toBe(minor)
+    expect(resolved.notes.map((note) => note.pitchClass)).toEqual(pitches)
+    expect(resolved.notes.map((note) => note.degree)).toEqual(['1', '2', '♭3', '4', '5', '♭6', '♭7'])
+    expect(resolved.notes.map((note) => note.interval)).toEqual(['R', 'M2', 'm3', 'P4', 'P5', 'm6', 'm7'])
+    expect(resolved.links).toEqual(pitches.slice(1).map((to, index) => ({ from: pitches[index], to, kind: 'step' })))
   })
 })

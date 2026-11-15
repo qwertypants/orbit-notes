@@ -41,6 +41,16 @@ export function enharmonicNames(note: PitchClass): readonly string[] {
 
 export const circleOfFifths = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5] as const satisfies readonly PitchClass[]
 
+/** The natural minor key sharing a major key's signature. */
+export function relativeMinorRoot(majorRoot: PitchClass): PitchClass {
+  return transpose(majorRoot, 9)
+}
+
+/** Consistent key spellings for the twelve inner-ring positions. */
+export function minorRootName(root: PitchClass): string {
+  return noteName(root, root === 1 || root === 6 || root === 8 ? 'sharp' : 'flat')
+}
+
 export function fifthNeighbors(root: PitchClass): { previous: PitchClass; next: PitchClass } {
   return { previous: transpose(root, -7), next: transpose(root, 7) }
 }
@@ -71,7 +81,8 @@ export type TopicSelection =
   | { topic: 'chords' | 'arpeggios'; root: PitchClass; preset: ChordPreset }
   | { topic: 'scales'; root: PitchClass; preset: ScalePreset }
   | { topic: 'scales' | 'arpeggios'; root: PitchClass; culturalPatternId: string }
-  | { topic: 'fifths'; root: PitchClass }
+  // root keeps the outer major selection; minorRoot selects an inner-ring key.
+  | { topic: 'fifths'; root: PitchClass; minorRoot?: PitchClass }
 
 /** Ordered note and relationship data consumed by both the visual and audio layers. */
 export type ResolvedNote = {
@@ -89,6 +100,7 @@ export type NoteLink = {
 
 export type ResolvedTopic = {
   topic: TopicId
+  /** Musical root, which is minorRoot when a fifths minor key is selected. */
   root: PitchClass
   preset: string
   label: string
@@ -134,6 +146,10 @@ export function resolveTopic(selection: TopicSelection): ResolvedTopic {
   }
 
   if (topic === 'fifths') {
+    if (selection.minorRoot !== undefined) {
+      const notes = patternNotes(selection.minorRoot, scalePresets.naturalMinor)
+      return { topic, root: selection.minorRoot, preset: 'naturalMinor', label: 'Natural minor', notes, links: stepLinks(notes) }
+    }
     const notes = Array.from({ length: 12 }, (_, index): ResolvedNote => {
       const note = transpose(root, index * 7)
       const semitonesFromRoot = (note - root + 12) % 12

@@ -14,17 +14,27 @@ export type ExplorerState = {
 
 export function createExplorerState(selection: TopicSelection): ExplorerState {
   const resolved = resolveTopic(selection)
-  const activeNotes = selection.topic === 'fifths'
+  const activeNotes = selection.topic === 'fifths' && selection.minorRoot === undefined
     ? [selection.root, fifthNeighbors(selection.root).next, fifthNeighbors(selection.root).previous]
     : resolved.notes.map((note) => note.pitchClass)
 
   return { selection, resolved, activeNotes }
 }
 
+/** Select an inner-ring key without changing the outer major root or mode. */
+export function selectRelativeMinor(state: ExplorerState, minorRoot: PitchClass): ExplorerState {
+  if (state.selection.topic !== 'fifths') return state
+  return createExplorerState({ ...state.selection, minorRoot })
+}
+
 export function toggleExplorerNote(state: ExplorerState, note: PitchClass): ExplorerState {
   const activeNotes = state.activeNotes.includes(note)
     ? state.activeNotes.filter((active) => active !== note)
     : [...state.activeNotes, note]
+  if (state.selection.topic === 'fifths' && state.selection.minorRoot !== undefined) {
+    const selection: TopicSelection = { topic: 'fifths', root: state.selection.root }
+    return { selection, resolved: resolveTopic(selection), activeNotes }
+  }
   return { ...state, activeNotes }
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createExplorerState, toggleExplorerNote } from '../explorer-state.ts'
-import { parseNoteName, type TopicSelection } from './music-theory.ts'
+import { parseNoteName, type PitchClass, type TopicSelection } from './music-theory.ts'
 import { createLearningSummary, noteLabelForState } from './learning-summary.ts'
 import { findTraditionPattern } from './tradition-catalog.ts'
 
@@ -141,5 +141,40 @@ describe('createLearningSummary', () => {
       '1 · C — root from C',
       '♯5 · G♯ — augmented fifth from C',
     ])
+  })
+})
+
+
+describe('minor-key learning copy', () => {
+  it.each<[PitchClass, PitchClass, string, string]>([
+    [0, 9, 'A', 'A, B, C, D, E, F, G'],
+    [7, 4, 'E', 'E, F♯, G, A, B, C, D'],
+    [2, 11, 'B', 'B, C♯, D, E, F♯, G, A'],
+    [9, 6, 'F♯', 'F♯, G♯, A, B, C♯, D, E'],
+    [4, 1, 'C♯', 'C♯, D♯, E, F♯, G♯, A, B'],
+    [11, 8, 'G♯', 'G♯, A♯, B, C♯, D♯, E, F♯'],
+    [6, 3, 'E♭', 'E♭, F, G♭, A♭, B♭, C♭, D♭'],
+    [1, 10, 'B♭', 'B♭, C, D♭, E♭, F, G♭, A♭'],
+    [8, 5, 'F', 'F, G, A♭, B♭, C, D♭, E♭'],
+    [3, 0, 'C', 'C, D, E♭, F, G, A♭, B♭'],
+    [10, 7, 'G', 'G, A, B♭, C, D, E♭, F'],
+    [5, 2, 'D', 'D, E, F, G, A, B♭, C'],
+  ])('spells minor notes from outer root %i and minor root %i', (major, minor, name, notes) => {
+    const state = createExplorerState({ topic: 'fifths', root: major, minorRoot: minor })
+    const summary = createLearningSummary(state)
+    expect(summary.title).toBe(`${name} natural minor scale`)
+    expect(summary.selectedNotes).toBe(notes)
+    expect(summary.relationships).toHaveLength(7)
+    expect(summary.relationships[0]).toBe(`1 · ${name} — root from ${name}`)
+    expect(summary.explanation).toContain('natural minor')
+    expect(state.activeNotes.map((pitch) => noteLabelForState(state, pitch)).join(', ')).toBe(notes)
+  })
+
+  it('drops the scale claim after manual edits', () => {
+    const state = toggleExplorerNote(createExplorerState({ topic: 'fifths', root: 0, minorRoot: 9 }), 0)
+    const summary = createLearningSummary(state)
+    expect(summary.title).toBe('C circle of fifths')
+    expect(summary.explanation).not.toContain('natural minor')
+    expect(summary.selectedNotes.split(', ')).not.toContain('C')
   })
 })

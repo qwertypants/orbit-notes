@@ -32,3 +32,17 @@ test('transposition retains altered degrees and wraps to the root', () => {
     { note: 'F', degree: '5', semitones: 5, nextNote: 'B♭' },
   ])
 })
+
+
+test('minor-key ladder measures degrees and steps from the minor root', () => {
+  const state = createExplorerState({ topic: 'fifths', root: 7, minorRoot: 4 })
+  expect(selectionSteps(state)).toEqual([
+    { note: 'E', degree: '1', semitones: 2, nextNote: 'F♯' },
+    { note: 'F♯', degree: '2', semitones: 1, nextNote: 'G' },
+    { note: 'G', degree: '♭3', semitones: 2, nextNote: 'A' },
+    { note: 'A', degree: '4', semitones: 2, nextNote: 'B' },
+    { note: 'B', degree: '5', semitones: 1, nextNote: 'C' },
+    { note: 'C', degree: '♭6', semitones: 2, nextNote: 'D' },
+    { note: 'D', degree: '♭7', semitones: 2, nextNote: 'E' },
+  ])
+})

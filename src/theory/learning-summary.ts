@@ -1,5 +1,5 @@
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
-import { noteName, type PitchClass } from './music-theory.ts'
+import { minorRootName, noteName, transpose, type PitchClass } from './music-theory.ts'
 import { findTraditionPattern, type TraditionPattern } from './tradition-catalog.ts'
 
 export type LearningSummary = {
@@ -51,12 +51,14 @@ function spellDegree(root: string, degree: string, pitch: PitchClass): string {
 
 /** Keep selected note labels consistent across the circle, controls, and learning panel. */
 export function noteLabelForState(state: ExplorerState, pitch: PitchClass): string {
-  if (state.selection.topic === 'fifths') return noteName(pitch, 'flat')
-  const root = noteName(state.selection.root, 'flat')
+  if (state.selection.topic === 'fifths' && state.selection.minorRoot === undefined) return noteName(pitch, 'flat')
+  const root = state.selection.topic === 'fifths'
+    ? minorRootName(state.resolved.root)
+    : noteName(state.resolved.root, 'flat')
   const patternNote = state.resolved.notes.find((note) => note.pitchClass === pitch)
   if (patternNote) return spellDegree(root, patternNote.degree, pitch)
   if (!state.activeNotes.includes(pitch)) return noteName(pitch, 'flat')
-  const semitones = (pitch - state.selection.root + 12) % 12
+  const semitones = (pitch - state.resolved.root + 12) % 12
   return spellDegree(root, customDegrees[semitones], pitch)
 }
 
@@ -65,16 +67,18 @@ function titleFor(state: ExplorerState, root: string): string {
     case 'chords': return `${root} ${state.resolved.label} chord`
     case 'scales': return `${root} ${state.resolved.label} scale`
     case 'arpeggios': return `${root} ${state.resolved.label} arpeggio`
-    case 'fifths': return `${root} circle of fifths`
+    case 'fifths': return state.selection.minorRoot === undefined ? `${root} circle of fifths` : `${root} natural minor scale`
   }
 }
 
 /** Builds the optional learning copy from the same resolved topic and selected notes as the circle. */
 export function createLearningSummary(state: ExplorerState): LearningSummary {
-  const root = noteName(state.selection.root, 'flat')
+  const root = state.selection.topic === 'fifths' && state.selection.minorRoot !== undefined
+    ? minorRootName(state.resolved.root)
+    : noteName(state.resolved.root, 'flat')
   const activeNotes = activeNotesInOrder(state)
 
-  if (state.selection.topic === 'fifths') {
+  if (state.selection.topic === 'fifths' && state.selection.minorRoot === undefined) {
     const sequence = state.resolved.notes.map((note) => noteName(note.pitchClass, 'flat'))
     return {
       title: titleFor(state, root),
@@ -90,7 +94,7 @@ export function createLearningSummary(state: ExplorerState): LearningSummary {
     ? activeNotes.map((pitchClass) => {
       const retainedPatternNote = patternNotes.find((note) => note.pitchClass === pitchClass)
       if (retainedPatternNote) return retainedPatternNote
-      const semitones = (pitchClass - state.selection.root + 12) % 12
+      const semitones = (pitchClass - state.resolved.root + 12) % 12
       return { pitchClass, degree: customDegrees[semitones], interval: customIntervals[semitones] }
     })
     : patternNotes
@@ -130,7 +134,9 @@ export function createLearningSummary(state: ExplorerState): LearningSummary {
     }
   }
 
-  const explanation = state.selection.topic === 'scales'
+  const explanation = state.selection.topic === 'fifths'
+    ? `This natural minor key shares its notes with ${noteName(transpose(state.resolved.root, 3), 'flat')} major. Each degree is measured from the minor root.`
+    : state.selection.topic === 'scales'
     ? 'These notes make the selected scale. Each degree describes a note’s place relative to the root.'
     : state.selection.topic === 'arpeggios'
       ? 'An arpeggio plays the chord tones one at a time, in order.'
