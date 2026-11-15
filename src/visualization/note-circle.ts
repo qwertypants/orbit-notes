@@ -1,6 +1,6 @@
 import p5 from 'p5'
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
-import { circleOfFifths, type PitchClass } from '../theory/music-theory.ts'
+import { circleOfFifths, minorRootName, noteName, relativeMinorRoot, type PitchClass } from '../theory/music-theory.ts'
 import { noteLabelForState } from '../theory/learning-summary.ts'
 import { spectrumLevels } from './spectrum.ts'
 import { changedConnections, changedNotes, easeOutCubic, transitionProgress, type CircleLink } from './selection-animation.ts'
@@ -54,6 +54,8 @@ export function mountNoteCircle(
   host: HTMLElement,
   initialState: ExplorerState,
   onNoteToggle: (note: PitchClass) => void,
+  // The owner applies selectRelativeMinor and shares the resulting state with all views.
+  onRelativeMinorSelect?: (minorRoot: PitchClass) => void,
 ): NoteCircle {
   let state = initialState
   let canvasSize = 1
@@ -72,10 +74,10 @@ export function mountNoteCircle(
       return state.selection.topic === 'fifths' ? circleOfFifths : chromaticOrder
     }
 
-    function point(note: PitchClass): Point {
+    function point(note: PitchClass, radiusRatio = 0.34): Point {
       const index = order().indexOf(note)
       const angle = (index / 12) * sketch.TWO_PI - sketch.HALF_PI
-      const radius = canvasSize * 0.34
+      const radius = canvasSize * radiusRatio
       return {
         x: canvasSize / 2 + Math.cos(angle) * radius,
         y: canvasSize / 2 + Math.sin(angle) * radius,
@@ -126,7 +128,7 @@ export function mountNoteCircle(
         const { x, y } = point(note)
         sketch.noStroke()
         for (let layer = 3; layer >= 1; layer -= 1) {
-          sketch.fill(`hsla(${note === state.selection.root ? 35 : hue}, 86%, 70%, ${0.028 * strength})`)
+          sketch.fill(`hsla(${note === state.resolved.root ? 35 : hue}, 86%, 70%, ${0.028 * strength})`)
           sketch.circle(x, y, radius * 2 + layer * 9)
         }
       })
@@ -163,7 +165,7 @@ export function mountNoteCircle(
       pulseProgress.forEach((progress, note) => {
         if (progress <= 0) return
         const { x, y } = point(note)
-        const colorHue = note === state.selection.root ? 35 : hue
+        const colorHue = note === state.resolved.root ? 35 : hue
         sketch.noStroke()
         for (let layer = 3; layer >= 1; layer -= 1) {
           sketch.fill(`hsla(${colorHue}, 86%, 70%, ${(0.045 * progress) / layer})`)
@@ -185,11 +187,24 @@ export function mountNoteCircle(
         const x = ((event.clientX - bounds.left) / bounds.width) * canvasSize
         const y = ((event.clientY - bounds.top) / bounds.height) * canvasSize
         const hitRadius = Math.max(20, canvasSize * 0.062)
-        const hit = order().map((note) => {
+        const outerTargets = order().map((note) => {
           const position = point(note)
-          return { note, distance: Math.hypot(position.x - x, position.y - y) }
-        }).filter(({ distance }) => distance <= hitRadius).sort((a, b) => a.distance - b.distance)[0]
-        if (hit) onNoteToggle(hit.note)
+          return { note, ring: 'outer' as const, distance: Math.hypot(position.x - x, position.y - y), hitRadius }
+        })
+        const innerTargets = state.selection.topic === 'fifths' ? circleOfFifths.map((majorRoot) => {
+          const position = point(majorRoot, 0.22)
+          return {
+            note: relativeMinorRoot(majorRoot),
+            ring: 'inner' as const,
+            distance: Math.hypot(position.x - x, position.y - y),
+            hitRadius: Math.min(22, canvasSize * 0.057),
+          }
+        }) : []
+        const hit = [...outerTargets, ...innerTargets]
+          .filter(({ distance, hitRadius }) => distance <= hitRadius)
+          .sort((a, b) => a.distance - b.distance)[0]
+        if (hit?.ring === 'inner') onRelativeMinorSelect?.(hit.note)
+        else if (hit) onNoteToggle(hit.note)
       })
       sketch.textFont('system-ui, sans-serif')
       sketch.textAlign(sketch.CENTER, sketch.CENTER)
@@ -220,7 +235,6 @@ export function mountNoteCircle(
       if (elapsed >= 1) selectionTransition = undefined
       const selected = new Set(state.activeNotes)
       const topic = state.selection.topic
-      const root = state.selection.root
 
       sketch.clear()
       drawSpectrum()
@@ -242,7 +256,7 @@ export function mountNoteCircle(
 
       order().forEach((note) => {
         const { x, y } = point(note)
-        const isRoot = note === root
+        const isRoot = note === state.resolved.root
         const isSelected = selected.has(note)
         const isPatternNote = state.resolved.notes.some((entry) => entry.pitchClass === note)
         const radius = Math.max(16, canvasSize * 0.062)
@@ -260,10 +274,38 @@ export function mountNoteCircle(
         }
         sketch.noStroke()
         sketch.fill(isSelected && isRoot ? '#1e1623' : isSelected ? '#ffffff' : isPatternNote ? '#e0e1ec' : '#c4c7d8')
-        sketch.textSize(Math.max(12, canvasSize * 0.045))
+        sketch.textSize(Math.max(topic === 'fifths' ? 14 : 12, canvasSize * 0.045))
         sketch.textStyle(isRoot || isSelected ? sketch.BOLD : sketch.NORMAL)
-        sketch.text(noteLabelForState(state, note), x, y + 1)
+        sketch.text(topic === 'fifths' ? noteName(note, 'flat') : noteLabelForState(state, note), x, y + 1)
       })
+      if (state.selection.topic === 'fifths') {
+        const selectedMinor = state.selection.minorRoot
+        sketch.noFill()
+        sketch.stroke('rgba(226, 225, 255, 0.17)')
+        sketch.strokeWeight(1)
+        sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.44)
+        circleOfFifths.forEach((majorRoot) => {
+          const minorRoot = relativeMinorRoot(majorRoot)
+          const { x, y } = point(majorRoot, 0.22)
+          const isSelected = minorRoot === selectedMinor
+          const radius = Math.max(15, canvasSize * 0.042)
+          sketch.stroke(isSelected ? '#ffd092' : '#9295ab')
+          sketch.strokeWeight(isSelected ? 3 : 1)
+          sketch.fill(isSelected ? '#fbbf77' : '#25283a')
+          sketch.circle(x, y, radius * 2)
+          if (isSelected) {
+            sketch.noFill()
+            sketch.stroke('#ffd092')
+            sketch.strokeWeight(1)
+            sketch.circle(x, y, radius * 2 + 6)
+          }
+          sketch.noStroke()
+          sketch.fill(isSelected ? '#1e1623' : '#ffffff')
+          sketch.textSize(Math.max(12, Math.min(16, canvasSize * 0.05)))
+          sketch.textStyle(isSelected ? sketch.BOLD : sketch.NORMAL)
+          sketch.text(`${minorRootName(minorRoot)}m`, x, y + 1)
+        })
+      }
       const pulseActive = [...pulseProgress.values()].some((value) => value > 0)
       if (!visualizing && !selectionTransition && !pulseActive) sketch.noLoop()
     }
