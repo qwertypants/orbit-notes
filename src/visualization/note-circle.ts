@@ -104,7 +104,7 @@ export function mountNoteCircle(
       return state.selection.topic === 'fifths' ? circleOfFifths : chromaticOrder
     }
 
-    function point(note: PitchClass, radiusRatio = 0.34): Point {
+    function point(note: PitchClass, radiusRatio = 0.36): Point {
       const index = order().indexOf(note)
       const angle = (index / 12) * sketch.TWO_PI - sketch.HALF_PI
       const radius = canvasSize * radiusRatio
@@ -150,7 +150,7 @@ export function mountNoteCircle(
     function drawNoteEffects(selected: ReadonlySet<PitchClass>, transition: SelectionTransition | undefined, progress: number): void {
       const topic = state.selection.topic
       const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
-      const radius = Math.max(16, canvasSize * 0.062)
+      const radius = Math.max(16, canvasSize * 0.058)
       order().forEach((note) => {
         const changed = transition?.changed.has(note)
         const strength = changed ? (selected.has(note) ? progress : 1 - progress) : selected.has(note) ? 1 : 0
@@ -191,7 +191,7 @@ export function mountNoteCircle(
     function drawPlaybackPulses(): void {
       const topic = state.selection.topic
       const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
-      const radius = Math.max(16, canvasSize * 0.062)
+      const radius = Math.max(16, canvasSize * 0.058)
       pulseProgress.forEach((progress, note) => {
         if (progress <= 0) return
         const { x, y } = point(note)
@@ -216,13 +216,13 @@ export function mountNoteCircle(
         const bounds = canvas.elt.getBoundingClientRect()
         const x = ((event.clientX - bounds.left) / bounds.width) * canvasSize
         const y = ((event.clientY - bounds.top) / bounds.height) * canvasSize
-        const hitRadius = Math.max(20, canvasSize * 0.062)
+        const hitRadius = Math.max(20, canvasSize * 0.058)
         const outerTargets = order().map((note) => {
           const position = point(note)
           return { note, ring: 'outer' as const, distance: Math.hypot(position.x - x, position.y - y), hitRadius }
         })
         const innerTargets = state.selection.topic === 'fifths' ? circleOfFifths.map((majorRoot) => {
-          const position = point(majorRoot, 0.22)
+          const position = point(majorRoot, 0.23)
           return {
             note: relativeMinorRoot(majorRoot),
             ring: 'inner' as const,
@@ -271,7 +271,7 @@ export function mountNoteCircle(
       sketch.noFill()
       sketch.stroke('rgba(226, 225, 255, 0.17)')
       sketch.strokeWeight(1.5)
-      sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.68)
+      sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.72)
 
       if (transition) {
         transition.unchanged.forEach((link) => drawConnection(link))
@@ -289,7 +289,7 @@ export function mountNoteCircle(
         const isRoot = note === state.resolved.root
         const isSelected = selected.has(note)
         const isPatternNote = state.resolved.notes.some((entry) => entry.pitchClass === note)
-        const radius = Math.max(16, canvasSize * 0.062)
+        const radius = Math.max(16, canvasSize * 0.058)
         const hue = topic === 'chords' ? 33 : topic === 'scales' ? 155 : topic === 'arpeggios' ? 315 : 189
 
         sketch.stroke(isRoot ? '#ffd092' : isSelected ? `hsl(${hue} 85% 72%)` : 'rgba(233, 230, 255, 0.58)')
@@ -313,12 +313,12 @@ export function mountNoteCircle(
         sketch.noFill()
         sketch.stroke('rgba(226, 225, 255, 0.17)')
         sketch.strokeWeight(1)
-        sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.44)
+        sketch.circle(canvasSize / 2, canvasSize / 2, canvasSize * 0.46)
         circleOfFifths.forEach((majorRoot) => {
           const minorRoot = relativeMinorRoot(majorRoot)
-          const { x, y } = point(majorRoot, 0.22)
+          const { x, y } = point(majorRoot, 0.23)
           const isSelected = minorRoot === selectedMinor
-          const radius = Math.max(15, canvasSize * 0.042)
+          const radius = Math.min(22, canvasSize * 0.045)
           sketch.stroke(isSelected ? '#ffd092' : '#9295ab')
           sketch.strokeWeight(isSelected ? 3 : 1)
           sketch.fill(isSelected ? '#fbbf77' : '#25283a')
@@ -331,7 +331,7 @@ export function mountNoteCircle(
           }
           sketch.noStroke()
           sketch.fill(isSelected ? '#1e1623' : '#ffffff')
-          sketch.textSize(Math.max(12, Math.min(16, canvasSize * 0.05)))
+          sketch.textSize(Math.min(16, canvasSize * 0.039))
           sketch.textStyle(isSelected ? sketch.BOLD : sketch.NORMAL)
           sketch.text(`${minorRootName(minorRoot)}m`, x, y + 1)
         })

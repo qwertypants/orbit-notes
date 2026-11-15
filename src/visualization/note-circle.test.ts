@@ -87,15 +87,17 @@ describe('relative minor circle rendering', () => {
     const labels = drawing.text.mock.calls.slice(-24)
     expect(labels.slice(0, 12).map(([label]) => label)).toEqual(['C', 'G', 'D', 'A', 'E', 'B', 'G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F'])
     expect(labels.slice(12).map(([label]) => label)).toEqual(['Am', 'Em', 'Bm', 'F♯m', 'C♯m', 'G♯m', 'E♭m', 'B♭m', 'Fm', 'Cm', 'Gm', 'Dm'])
-    expect(labels[12]).toEqual(['Am', 160, 90.6])
-    expect(drawing.textSize.mock.calls.slice(12).every(([size]) => size >= 14)).toBe(true)
+    expect(labels[12][0]).toBe('Am')
+    expect(labels[12][1]).toBe(160)
+    expect(labels[12][2]).toBeCloseTo(87.4)
+    expect(drawing.textSize.mock.calls.slice(12).every(([size]) => size >= 12)).toBe(true)
     // Every inner label has its own opaque backing and contrasting text.
     for (let index = 12; index < 24; index += 1) {
       const textOrder = drawing.text.mock.invocationCallOrder[index]
       const fillsBeforeLabel = drawing.fill.mock.calls.filter((_, fillIndex) => drawing.fill.mock.invocationCallOrder[fillIndex] < textOrder)
       expect(fillsBeforeLabel.slice(-2)).toEqual([['#25283a'], ['#ffffff']])
       const [, x, y] = labels[index]
-      expect(drawing.circle).toHaveBeenCalledWith(x, y - 1, 30)
+      expect(drawing.circle.mock.calls.some(([cx, cy, diameter]) => cx === x && cy === y - 1 && Math.abs(diameter - 28.8) < 0.001)).toBe(true)
     }
   })
 
@@ -103,10 +105,10 @@ describe('relative minor circle rendering', () => {
     drawing.width = width
     const { inner, outer } = await mount()
     circleOfFifths.forEach((major, index) => {
-      clickPosition(index, 0.22)
+      clickPosition(index, 0.23)
       expect(inner).toHaveBeenLastCalledWith(relativeMinorRoot(major))
       expect(outer).toHaveBeenCalledTimes(index)
-      clickPosition(index, 0.34)
+      clickPosition(index, 0.36)
       expect(outer).toHaveBeenLastCalledWith(major)
       expect(inner).toHaveBeenCalledTimes(index + 1)
     })
@@ -115,9 +117,21 @@ describe('relative minor circle rendering', () => {
     expect(outer).toHaveBeenCalledTimes(12)
   })
 
+  it.each([250, 280, 320, 520])('leaves space between every note backing at %i pixels', async (width) => {
+    drawing.width = width
+    await mount()
+    const labels = drawing.text.mock.calls.slice(-24)
+    const notes = labels.map(([, x, y], index) => drawing.circle.mock.calls.find(([cx, cy, diameter]) => cx === x && Math.abs(cy - (y - 1)) < 0.001 && Math.abs(diameter - (index < 12 ? Math.max(16, width * 0.058) : Math.min(22, width * 0.045)) * 2) < 0.001)!)
+    notes.forEach(([x, y, diameter], index) => {
+      notes.slice(index + 1).forEach(([otherX, otherY, otherDiameter]) => {
+        expect(Math.hypot(x - otherX, y - otherY) - (diameter + otherDiameter) / 2).toBeGreaterThan(3)
+      })
+    })
+  })
+
   it('preserves touch padding outside the visible inner note backing', async () => {
     const { inner, outer } = await mount()
-    clickPosition(0, 0.22 + 17 / 320)
+    clickPosition(0, 0.23 + 17 / 320)
     expect(inner).toHaveBeenCalledExactlyOnceWith(9)
     expect(outer).not.toHaveBeenCalled()
   })
@@ -127,7 +141,7 @@ describe('relative minor circle rendering', () => {
     drawing.width = 430
     drawing.bounds = { left: 30, top: 80, width: 215, height: 215 }
     drawing.resize()
-    clickPosition(1, 0.22)
+    clickPosition(1, 0.23)
     expect(inner).toHaveBeenCalledExactlyOnceWith(4)
     expect(outer).not.toHaveBeenCalled()
   })
@@ -158,7 +172,7 @@ describe('relative minor circle rendering', () => {
     clickPosition(0, 0.22)
     expect(state.selection).toEqual({ topic: 'fifths', root: 0, minorRoot: 9 })
     expect(state.activeNotes).toEqual([9, 11, 0, 2, 4, 5, 7])
-    clickPosition(1, 0.22)
+    clickPosition(1, 0.23)
     expect(state.activeNotes).toEqual([4, 6, 7, 9, 11, 0, 2])
     expect(outer).not.toHaveBeenCalled()
   })
