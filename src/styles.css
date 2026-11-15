@@ -92,8 +92,8 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
   z-index: 20;
   display: grid;
   place-items: center;
-  width: 204px;
-  height: 204px;
+  width: 292px;
+  height: 332px;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 19px;
   background: rgba(25, 27, 41, .94);
@@ -149,7 +149,7 @@ button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-
 .note-circle-hud__drag:hover::before { filter: brightness(1.3); }
 .note-circle-hud__drag:focus-visible,
 .note-circle-hud__play:focus-visible { outline: 3px solid #ffbf70; outline-offset: 2px; }
-.note-circle-hud__circle { position: relative; width: 176px; height: 176px; }
+.note-circle-hud__circle { position: relative; width: 280px; height: 280px; }
 .note-circle-hud__circle canvas { display: block; width: 100% !important; height: auto !important; cursor: pointer; touch-action: manipulation; }
 .note-circle-hud__play {
   position: absolute;
@@ -350,3 +350,7 @@ button, .segmented label, summary { scale: var(--press-scale, none); }
 .note-circle-hud, .note-circle-hud.is-visible, .note-circle-hud.is-snapping { transform: none; transition: opacity 180ms ease; }
 
 .floating-hud, .note-circle-hud.is-visible, .note-circle-hud.is-snapping { transition: none; }
+
+.minor-key-controls { padding: 4px; text-align: center; }
+.minor-key-controls select { max-width: 100%; min-height: 36px; }
+.minor-key-controls select:focus-visible { outline: 3px solid #ffbf70; outline-offset: 2px; }

@@ -19,6 +19,7 @@ export function mountNoteCircleHud(options: {
   anchor: HTMLElement
   initialState: ExplorerState
   onNoteToggle: (note: PitchClass) => void
+  onRelativeMinorSelect?: (root: PitchClass) => void
   onPlay: () => void
   coordinator: HudCoordinator
 }): NoteCircleHud {
@@ -58,7 +59,7 @@ export function mountNoteCircleHud(options: {
   root.append(...dragHandles, circleHost, playButton)
   document.body.append(root)
 
-  const circle = mountNoteCircle(circleHost, options.initialState, options.onNoteToggle)
+  const circle = mountNoteCircle(circleHost, options.initialState, options.onNoteToggle, options.onRelativeMinorSelect)
   playButton.addEventListener('click', options.onPlay)
   const placement = options.coordinator.register({ id: 'circle', root, handles: dragHandles, preferred: 'top-right', storageKey: 'orbit.hud.circle.position' })
 

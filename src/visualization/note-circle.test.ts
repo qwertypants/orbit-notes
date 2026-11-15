@@ -48,6 +48,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   drawing.width = 320
   drawing.bounds = { left: 0, top: 0, width: 320, height: 320 }
+  vi.stubGlobal('Option', class { constructor(public text: string, public value: string) {} })
+  vi.stubGlobal('document', { createElement: () => ({ className: '', value: '', hidden: false, setAttribute() {}, append() {}, addEventListener() {}, remove() {} }) })
   vi.stubGlobal('window', { matchMedia: () => ({ matches: true, addEventListener() {}, removeEventListener() {} }) })
   vi.stubGlobal('ResizeObserver', class {
     constructor(callback: () => void) { drawing.resize = callback }
@@ -65,7 +67,7 @@ async function mount(state = createExplorerState({ topic: 'fifths', root: 0 })) 
   const outer = vi.fn()
   const inner = vi.fn()
   // The component only measures the host; p5 owns the DOM canvas in production.
-  const host = { getBoundingClientRect: () => ({ width: drawing.width }) } as HTMLElement
+  const host = { after() {}, getBoundingClientRect: () => ({ width: drawing.width }) } as HTMLElement
   circle = mountNoteCircle(host, state, outer, inner)
   await Promise.resolve()
   return { outer, inner }

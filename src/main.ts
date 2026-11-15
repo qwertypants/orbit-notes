@@ -1,6 +1,6 @@
 import { selectionSteps } from './theory/selection-steps.ts'
 import './styles.css'
-import { activeNotesInOrder, createExplorerState, toggleExplorerNote } from './explorer-state.ts'
+import { activeNotesInOrder, createExplorerState, selectRelativeMinor, toggleExplorerNote } from './explorer-state.ts'
 import {
   chordPresets,
   noteName,
@@ -365,6 +365,14 @@ function toggleCircleNote(note: PitchClass): void {
   renderSelection()
 }
 
+function selectMinor(root: PitchClass): void {
+  explorerState = selectRelativeMinor(explorerState, root)
+  rootSelect.value = noteName(root, 'flat')
+  syncRootSteps()
+  stopCurrentPlayback('Selection changed. Press Play to hear it.')
+  renderSelection()
+}
+
 function renderCircleContext(): void {
   const summary = createLearningSummary(explorerState)
   document.querySelector<HTMLElement>('#circle-selection-title')!.textContent = summary.title
@@ -435,9 +443,10 @@ function renderCircleContext(): void {
 }
 
 function renderSelection(): void {
+  rootSelect.value = noteName(explorerState.resolved.root, 'flat')
   renderCircleContext()
   const active = new Set(explorerState.activeNotes)
-  const root = explorerState.selection.root
+  const root = explorerState.resolved.root
   noteButtons.replaceChildren(...Array.from({ length: 12 }, (_, index) => {
     const note = index as PitchClass
     const button = document.createElement('button')
@@ -514,7 +523,7 @@ try {
 // The large p5 module loads after controls and note buttons are usable.
 void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
   if (pageHidden) return
-  circle = mountNoteCircle(circleHost, explorerState, toggleCircleNote)
+  circle = mountNoteCircle(circleHost, explorerState, toggleCircleNote, selectMinor)
   circle.update(explorerState)
   const now = performance.now()
   pendingNotePulses.splice(0).forEach(({ note, startedAtMs }) => {
@@ -531,6 +540,7 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
       initialState: explorerState,
       coordinator: hudCoordinator,
       onNoteToggle: toggleCircleNote,
+      onRelativeMinorSelect: selectMinor,
       onPlay: () => playButton.click(),
     })
     circleHud.setPlaybackActive(loopingPlayback)
@@ -692,7 +702,8 @@ for (const [button, direction] of [[previousRoot, -1], [nextRoot, 1]] as const) 
 }
 rootSelect.addEventListener('change', () => {
   syncRootSteps()
-  resetSelection()
+  if (explorerState.selection.topic === 'fifths' && explorerState.selection.minorRoot !== undefined) selectMinor(parseNoteName(rootSelect.value))
+  else resetSelection()
 })
 syncRootSteps()
 presetButtons.addEventListener('click', (event) => {

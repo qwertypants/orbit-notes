@@ -69,6 +69,27 @@ export function mountNoteCircle(
   const pulseProgress = new Map<PitchClass, number>()
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
+  const controls = document.createElement('div')
+  controls.className = 'minor-key-controls'
+  const select = document.createElement('select')
+  select.setAttribute('aria-label', 'Select relative minor key')
+  const placeholder = new Option('Select minor key', '')
+  select.append(placeholder)
+  for (const major of circleOfFifths) {
+    const root = relativeMinorRoot(major)
+    select.append(new Option(`Select ${minorRootName(root)} minor`, String(root)))
+  }
+  select.addEventListener('change', () => {
+    if (select.value !== '') onRelativeMinorSelect?.(Number(select.value) as PitchClass)
+  })
+  controls.append(select)
+  host.after(controls)
+  function syncControls(): void {
+    controls.hidden = state.selection.topic !== 'fifths'
+    select.value = state.selection.topic === 'fifths' && state.selection.minorRoot !== undefined ? String(state.selection.minorRoot) : ''
+  }
+  syncControls()
+
   const sketchInstance = new p5((sketch) => {
     function order(): readonly PitchClass[] {
       return state.selection.topic === 'fifths' ? circleOfFifths : chromaticOrder
@@ -354,6 +375,7 @@ export function mountNoteCircle(
         }
       }
       state = nextState
+      syncControls()
       syncLoop()
       sketchInstance.redraw()
     },
@@ -395,6 +417,7 @@ export function mountNoteCircle(
       pulseProgress.clear()
       reducedMotion.removeEventListener('change', onMotionChange)
       observer?.disconnect()
+      controls.remove()
       sketchInstance.remove()
     },
   }
