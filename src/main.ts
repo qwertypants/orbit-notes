@@ -282,6 +282,8 @@ function stopCurrentPlayback(message?: string): void {
   playRequest += 1
   loopingPlayback = false
   circleHud?.setPlaybackActive(false)
+  pianoHud?.setPlaybackActive(false)
+  guitarHud?.setPlaybackActive(false)
   playButton.disabled = false
   circlePlayButton.disabled = false
   playButton.innerHTML = '<span aria-hidden="true">▶</span> Play'
@@ -506,8 +508,8 @@ noteButtons.addEventListener('click', (event) => {
 })
 
 renderTraditionChoices()
- pianoHud = mountInstrumentHud({ kind: 'piano', initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#piano-toggle')!, coordinator: hudCoordinator })
-guitarHud = mountInstrumentHud({ kind: 'guitar', onNoteClick: (note) => void playStaffNote(note), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#guitar-toggle')!, coordinator: hudCoordinator })
+ pianoHud = mountInstrumentHud({ kind: 'piano', onPlay: () => playButton.click(), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#piano-toggle')!, coordinator: hudCoordinator })
+guitarHud = mountInstrumentHud({ kind: 'guitar', onPlay: () => playButton.click(), onNoteClick: (note) => void playStaffNote(note), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#guitar-toggle')!, coordinator: hudCoordinator })
 staff = mountNoteStaff(staffHost, explorerState, { onNoteClick: (note) => void playStaffNote(note) })
 staffPanel.hidden = true
 staffToggle.addEventListener('click', () => {
@@ -657,6 +659,8 @@ playButton.addEventListener('click', async () => {
     if (pattern === 'loop') {
       loopingPlayback = true
       circleHud?.setPlaybackActive(true)
+      pianoHud?.setPlaybackActive(true)
+      guitarHud?.setPlaybackActive(true)
       playButton.innerHTML = '<span aria-hidden="true">■</span> Stop'
       circlePlayButton.setAttribute('aria-label', 'Stop playback')
       circlePlayButton.title = 'Stop playback'

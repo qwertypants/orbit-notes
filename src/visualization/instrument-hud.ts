@@ -4,12 +4,13 @@ import { instrumentRootLegend, renderInstrumentSvg } from './instrument-svg.ts'
 import type { InstrumentKind } from './instrument-notes.ts'
 import type { HudCoordinator, HudRegistration } from './hud-coordinator.ts'
 
-export type InstrumentHud = { update(state: ExplorerState): void; startNote(note: PitchClass): void; endNote(note: PitchClass): void; clearPlayback(): void; destroy(): void }
+export type InstrumentHud = { setPlaybackActive(active: boolean): void; update(state: ExplorerState): void; startNote(note: PitchClass): void; endNote(note: PitchClass): void; clearPlayback(): void; destroy(): void }
 
 export function mountInstrumentHud(options: {
   kind: InstrumentKind
   initialState: ExplorerState
   toggle: HTMLButtonElement
+  onPlay?: () => void
   onNoteClick?: (note: PitchClass) => void
   coordinator: HudCoordinator
 }): InstrumentHud {
@@ -38,7 +39,17 @@ export function mountInstrumentHud(options: {
   hide.className = 'instrument-hud__hide'
   hide.textContent = 'Hide'
   hide.setAttribute('aria-label', `Hide ${kind}`)
-  header.append(title, handle, hide)
+  const play = document.createElement('button')
+  play.type = 'button'
+  play.className = 'instrument-hud__hide instrument-hud__play'
+  const setPlaybackActive = (active: boolean) => {
+    play.textContent = active ? 'Stop' : 'Play'
+    play.setAttribute('aria-label', active ? 'Stop playback' : 'Play selected notes')
+  }
+  setPlaybackActive(false)
+  const onPlay = () => options.onPlay?.()
+  play.addEventListener('click', onPlay)
+  header.append(title, handle, play, hide)
   const content = document.createElement('div')
   content.className = 'instrument-hud__content'
   content.innerHTML = renderInstrumentSvg(kind, options.initialState)
@@ -102,6 +113,7 @@ export function mountInstrumentHud(options: {
     legend.textContent = instrumentRootLegend(currentState)
   }
   return {
+    setPlaybackActive,
     update(state) {
       if (destroyed) return
       currentState = state
@@ -129,6 +141,7 @@ export function mountInstrumentHud(options: {
       content.removeEventListener('keydown', activate)
       toggle.removeEventListener('click', onToggle)
       hide.removeEventListener('click', onHide)
+      play.removeEventListener('click', onPlay)
       placement.destroy()
       root.remove()
       visible = false

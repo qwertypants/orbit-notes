@@ -103,7 +103,7 @@ describe('instrument HUD', () => {
 it.each(['piano', 'guitar'] as const)('hides %s from its header and can reopen', kind => {
   const { toggle, registration } = setup(kind)
   toggle.click()
-  body.children[0].children[0].children[2].click()
+  body.children[0].children[0].children[3].click()
   expect(toggle.getAttribute('aria-pressed')).toBe('false')
   expect(registration.setVisible).toHaveBeenLastCalledWith(false)
   toggle.click()
