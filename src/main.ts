@@ -359,7 +359,7 @@ function topicSelection(): TopicSelection {
 }
 
 populatePresets()
-syncPlaybackChoice()
+syncPlaybackChoice(true)
 let explorerState = createExplorerState(topicSelection())
 function toggleCircleNote(note: PitchClass): void {
   explorerState = toggleExplorerNote(explorerState, note)
