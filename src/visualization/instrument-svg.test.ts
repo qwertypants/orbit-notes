@@ -7,7 +7,7 @@ const stateWith = (...activeNotes: PitchClass[]): ExplorerState => ({
   ...createExplorerState({ topic: 'fifths', root: 0 }), activeNotes,
 })
 
-it('renders inert piano and guitar references with their complete positions', () => {
+it('renders piano and interactive guitar references with their complete positions', () => {
   const piano = renderInstrumentSvg('piano', stateWith(0))
   const guitar = renderInstrumentSvg('guitar', stateWith(0))
   expect(piano.match(/data-key-index=/g)).toHaveLength(13)
@@ -15,11 +15,11 @@ it('renders inert piano and guitar references with their complete positions', ()
   expect(piano.match(/data-selected="true"/g)).toHaveLength(2)
   expect(guitar.match(/data-selected="true"/g)).toHaveLength(2)
   for (const svg of [piano, guitar]) {
-    expect(svg).toContain('role="img"')
+    expect(svg).toContain(svg === piano ? 'role="img"' : 'role="group"')
     expect(svg).toContain('aria-label=')
     expect(svg).toContain('<title>')
     expect(svg).toContain('<desc>')
-    expect(svg).not.toMatch(/role="button"|tabindex|on\w+=/i)
+    expect(svg).not.toMatch(/on\w+=/i)
   }
 })
 
@@ -87,4 +87,20 @@ it('highlights one representative position per sounding note independently of se
       expect(svg).toMatch(/data-guitar-position="6-0"[^>]*data-playing="false"/)
     }
   }
+})
+
+it('makes only labeled open and fretted guitar positions keyboard controls', () => {
+  const svg = renderInstrumentSvg('guitar', stateWith(4))
+  const groups = [...svg.matchAll(/<g ([^>]+)>(.*?)<\/g>/g)]
+  expect(groups.length).toBeGreaterThan(0)
+  for (const [, attributes, children] of groups) {
+    expect(attributes).toContain('data-guitar-note="4"')
+    expect(attributes).toContain('role="button" tabindex="0"')
+    expect(attributes).toMatch(/aria-label="Play E, string [1-6], fret [0-4]"/)
+    expect(children).toContain('instrument-note-label')
+  }
+  expect(svg).toContain('Play E, string 1, fret 0')
+  expect(svg).toContain('Play E, string 2, fret 5'.replace('2, fret 5', '4, fret 2'))
+  expect(svg).toMatch(/<g data-guitar-position="1-1"[^>]+\/>/)
+  expect(renderInstrumentSvg('piano', stateWith(4))).not.toContain('data-guitar-note')
 })

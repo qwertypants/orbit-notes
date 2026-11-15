@@ -84,10 +84,10 @@ describe('instrument HUD', () => {
     expect(root.children[3].textContent).toBe('Root A is not selected; no root outline.')
   })
 
-  it('renders a display-only guitar reference with a single drag handle', () => {
+  it('renders a interactive guitar reference with a single drag handle', () => {
     setup('guitar')
     const root = body.children[0]
-    expect(root.children[1].innerHTML).toContain('role="img"')
+    expect(root.children[1].innerHTML).toContain('role="group"')
     expect(root.children[1].innerHTML).not.toContain('<button')
     expect(root.children[0].children[1].tabIndex).toBe(0)
   })

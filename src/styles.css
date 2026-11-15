@@ -381,3 +381,6 @@ button, .segmented label, summary { scale: var(--press-scale, none); }
 .note-circle-hud--minimized { width: 96px; height: 44px; }
 .note-circle-hud--minimized .note-circle-hud__drag:not(:first-child) { display: none; }
 .note-circle-hud--minimized .note-circle-hud__toggle { left: auto; right: 0; }
+
+[data-guitar-note] { cursor: pointer; }
+[data-guitar-note]:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }

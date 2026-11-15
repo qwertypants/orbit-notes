@@ -10,6 +10,7 @@ export function mountInstrumentHud(options: {
   kind: InstrumentKind
   initialState: ExplorerState
   toggle: HTMLButtonElement
+  onNoteClick?: (note: PitchClass) => void
   coordinator: HudCoordinator
 }): InstrumentHud {
   const { kind, toggle, coordinator } = options
@@ -41,6 +42,20 @@ export function mountInstrumentHud(options: {
   const content = document.createElement('div')
   content.className = 'instrument-hud__content'
   content.innerHTML = renderInstrumentSvg(kind, options.initialState)
+  const activate = (event: MouseEvent | KeyboardEvent) => {
+    if (kind !== 'guitar' || !(event.target instanceof Element)) return
+    const target = event.target.closest('[data-guitar-note]')
+    if (!target || !content.contains(target)) return
+    if (event instanceof KeyboardEvent) {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      if (event.repeat) return
+    }
+    const note = Number(target.getAttribute('data-guitar-note'))
+    if (Number.isInteger(note) && note >= 0 && note < 12) options.onNoteClick?.(note as PitchClass)
+  }
+  content.addEventListener('click', activate)
+  content.addEventListener('keydown', activate)
   const scope = document.createElement('p')
   scope.className = 'instrument-hud__scope'
   scope.textContent = kind === 'guitar'
@@ -80,7 +95,10 @@ export function mountInstrumentHud(options: {
   let destroyed = false
   const render = () => {
     if (destroyed) return
+    const focused = document.activeElement
+    const position = focused && content.contains(focused) ? focused.getAttribute('data-guitar-position') : null
     content.innerHTML = renderInstrumentSvg(kind, currentState, soundingNotes)
+    if (position) content.querySelector<SVGElement>(`[data-guitar-position="${position}"][data-guitar-note]`)?.focus()
     legend.textContent = instrumentRootLegend(currentState)
   }
   return {
@@ -107,6 +125,8 @@ export function mountInstrumentHud(options: {
       if (destroyed) return
       destroyed = true
       soundingNotes.clear()
+      content.removeEventListener('click', activate)
+      content.removeEventListener('keydown', activate)
       toggle.removeEventListener('click', onToggle)
       hide.removeEventListener('click', onHide)
       placement.destroy()
