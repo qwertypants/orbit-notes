@@ -35,6 +35,7 @@ class FakeElement {
   title = ''
   type = ''
   tabIndex = -1
+  hidden = false
   inert = false
   parent: FakeElement | undefined
   capturedPointer: number | undefined
@@ -223,20 +224,20 @@ describe('mountNoteCircleHud', () => {
     hud.startSpectrum(readSpectrum)
     hud.stopSpectrum()
     noteCallback(5)
-    currentHud().children.find((child) => child.className === 'note-circle-hud__play')!.click()
+    currentHud().children[4].children.find((child) => child.className === 'note-circle-hud__play')!.click()
 
     expect(circle.update).toHaveBeenCalledWith(nextState)
     expect(circle.startSpectrum).toHaveBeenCalledWith(readSpectrum)
     expect(circle.stopSpectrum).toHaveBeenCalledOnce()
     expect(onNoteToggle).toHaveBeenCalledWith(5)
     expect(onPlay).toHaveBeenCalledOnce()
-    expect(currentHud().children.find((child) => child.className === 'note-circle-hud__play')!.getAttribute('aria-label')).toBe('Play selected notes')
+    expect(currentHud().children[4].children.find((child) => child.className === 'note-circle-hud__play')!.getAttribute('aria-label')).toBe('Play selected notes')
     hud.destroy()
   })
 
   it('starts with an accessible play label, title, and icon', () => {
     const hud = mountNoteCircleHud({ coordinator: fakeCoordinator(), anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
-    const button = currentHud().children.find((child) => child.className === 'note-circle-hud__play')!
+    const button = currentHud().children[4].children.find((child) => child.className === 'note-circle-hud__play')!
 
     expect(button.getAttribute('aria-label')).toBe('Play selected notes')
     expect(button.title).toBe('Play selected notes')
@@ -248,7 +249,7 @@ describe('mountNoteCircleHud', () => {
   it('switches to an accessible stop action and restores play when playback stops', () => {
     const onPlay = vi.fn()
     const hud = mountNoteCircleHud({ coordinator: fakeCoordinator(), anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay })
-    const button = currentHud().children.find((child) => child.className === 'note-circle-hud__play')!
+    const button = currentHud().children[4].children.find((child) => child.className === 'note-circle-hud__play')!
     const playIcon = button.innerHTML
 
     hud.setPlaybackActive(true)
@@ -265,6 +266,28 @@ describe('mountNoteCircleHud', () => {
     expect(button.title).toBe('Play selected notes')
     expect(button.innerHTML).toBe(playIcon)
     hud.destroy()
+  })
+
+  it('collapses without replacing handles or losing playback and removes the toggle listener', () => {
+    const hud = mountNoteCircleHud({ coordinator: fakeCoordinator(), anchor: new FakeElement() as unknown as HTMLElement, initialState: state, onNoteToggle: vi.fn(), onPlay: vi.fn() })
+    const root = currentHud()
+    const handles = root.children.slice(0, 4)
+    const content = root.children[4]
+    const toggle = root.children[5]
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    toggle.click()
+    expect(content.hidden).toBe(true)
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(toggle.innerHTML).toContain('<rect')
+    hud.setPlaybackActive(true)
+    hud.update(state)
+    toggle.click()
+    expect(content.hidden).toBe(false)
+    expect(root.children.slice(0, 4)).toEqual(handles)
+    expect(content.children[1].getAttribute('aria-label')).toBe('Stop playback')
+    expect(circle.update).toHaveBeenCalledWith(state)
+    hud.destroy()
+    expect(toggle.listeners.get('click')?.size).toBe(0)
   })
 
   it('disconnects resources on destroy', () => {

@@ -3,6 +3,8 @@ import type { PitchClass } from '../theory/music-theory.ts'
 import type { HudCoordinator } from './hud-coordinator.ts'
 import { mountNoteCircle } from './note-circle.ts'
 
+let contentSequence = 0
+
 const smallViewportQuery = '(max-width: 759px)'
 
 export type NoteCircleHud = {
@@ -56,7 +58,30 @@ export function mountNoteCircleHud(options: {
   }
   setPlaybackActive(false)
 
-  root.append(...dragHandles, circleHost, playButton)
+  const content = document.createElement('div')
+  content.className = 'note-circle-hud__content'
+  content.id = `note-circle-hud-content-${++contentSequence}`
+  content.append(circleHost, playButton)
+  const toggle = document.createElement('button')
+  toggle.type = 'button'
+  toggle.className = 'note-circle-hud__toggle'
+  toggle.setAttribute('aria-controls', content.id)
+  let minimized = false
+  const syncMinimized = () => {
+    content.hidden = minimized
+    root.classList.toggle('note-circle-hud--minimized', minimized)
+    toggle.setAttribute('aria-expanded', String(!minimized))
+    const label = minimized ? 'Expand notes' : 'Minimize notes'
+    toggle.setAttribute('aria-label', label)
+    toggle.title = label
+    toggle.innerHTML = minimized
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8m-4-4v8"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14"/></svg>'
+  }
+  const onToggle = () => { minimized = !minimized; syncMinimized() }
+  toggle.addEventListener('click', onToggle)
+  syncMinimized()
+  root.append(...dragHandles, content, toggle)
   document.body.append(root)
 
   const circle = mountNoteCircle(circleHost, options.initialState, options.onNoteToggle, options.onRelativeMinorSelect)
@@ -115,6 +140,7 @@ export function mountNoteCircleHud(options: {
       media.removeEventListener('change', onMediaChange)
       placement.destroy()
       playButton.removeEventListener('click', options.onPlay)
+      toggle.removeEventListener('click', onToggle)
       circle.destroy()
       root.remove()
     },

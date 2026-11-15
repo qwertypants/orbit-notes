@@ -372,3 +372,12 @@ button, .segmented label, summary { scale: var(--press-scale, none); }
   stroke-width: 2;
   stroke-dasharray: 3 2;
 }
+
+.note-circle-hud__content { display: grid; place-items: center; }
+.note-circle-hud__content[hidden] { display: none; }
+.note-circle-hud__toggle { position: absolute; top: 0; left: calc(50% - 22px); width: 44px; height: 44px; padding: 10px; border: 0; border-radius: 12px; color: #ffbf70; background: #191b29; cursor: pointer; }
+.note-circle-hud__toggle svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
+.note-circle-hud__toggle:focus-visible { outline: 3px solid #ffbf70; outline-offset: 2px; }
+.note-circle-hud--minimized { width: 96px; height: 44px; }
+.note-circle-hud--minimized .note-circle-hud__drag:not(:first-child) { display: none; }
+.note-circle-hud--minimized .note-circle-hud__toggle { left: auto; right: 0; }
