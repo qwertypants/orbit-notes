@@ -55,7 +55,7 @@ export function mountNoteCircle(
   initialState: ExplorerState,
   onNoteToggle: (note: PitchClass) => void,
   // The owner applies selectRelativeMinor and shares the resulting state with all views.
-  onRelativeMinorSelect?: (minorRoot: PitchClass) => void,
+  onRelativeMinorSelect?: (minorRoot: PitchClass | undefined) => void,
 ): NoteCircle {
   let state = initialState
   let canvasSize = 1
@@ -83,13 +83,13 @@ export function mountNoteCircle(
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
     event.preventDefault()
     const last = select.options.length - 1
-    const next = event.key === 'Home' ? 1 : event.key === 'End' ? last
-      : Math.max(1, Math.min(last, select.selectedIndex + (event.key === 'ArrowDown' ? 1 : -1)))
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? last
+      : Math.max(0, Math.min(last, select.selectedIndex + (event.key === 'ArrowDown' ? 1 : -1)))
     select.selectedIndex = next
     select.dispatchEvent(new Event('change'))
   })
   select.addEventListener('change', () => {
-    if (select.value !== '') onRelativeMinorSelect?.(Number(select.value) as PitchClass)
+    onRelativeMinorSelect?.(select.value === '' ? undefined : Number(select.value) as PitchClass)
   })
   controls.append(select)
   host.after(controls)

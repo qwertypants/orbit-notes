@@ -147,6 +147,30 @@ export async function playNotes(
   return true
 }
 
+/** Pluck the exact register of a guitar position using the sampled guitar. */
+export async function playGuitarNote(
+  midi: number,
+  onNoteStart: () => void,
+  onNoteEnd: () => void,
+): Promise<boolean> {
+  stopPlayback()
+  const requestVersion = playbackVersion
+  await Tone.start()
+  if (requestVersion !== playbackVersion) return false
+  const voice = instrument('guitar')
+  await Tone.loaded()
+  if (requestVersion !== playbackVersion) return false
+  const pitch = `${toneNames[midi % 12]}${Math.floor(midi / 12) - 1}`
+  voice.triggerAttack(pitch)
+  onNoteStart()
+  scheduleTimeout(() => {
+    if (requestVersion !== playbackVersion) return
+    voice.triggerRelease(pitch)
+    onNoteEnd()
+  }, chordHoldMs)
+  return true
+}
+
 /** Dispose the reusable instrument when the page is left. */
 export function disposeAudio(): void {
   stopPlayback()

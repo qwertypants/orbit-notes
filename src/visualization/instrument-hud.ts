@@ -1,17 +1,17 @@
 import type { PitchClass } from '../theory/music-theory.ts'
 import type { ExplorerState } from '../explorer-state.ts'
 import { instrumentRootLegend, renderInstrumentSvg } from './instrument-svg.ts'
-import type { InstrumentKind } from './instrument-notes.ts'
+import { guitarNotesForState, type GuitarPosition, type InstrumentKind } from './instrument-notes.ts'
 import type { HudCoordinator, HudRegistration } from './hud-coordinator.ts'
 
-export type InstrumentHud = { setPlaybackActive(active: boolean): void; update(state: ExplorerState): void; startNote(note: PitchClass): void; endNote(note: PitchClass): void; clearPlayback(): void; destroy(): void }
+export type InstrumentHud = { setPlaybackActive(active: boolean): void; update(state: ExplorerState): void; startNote(note: PitchClass, position?: GuitarPosition): void; endNote(note: PitchClass): void; clearPlayback(): void; destroy(): void }
 
 export function mountInstrumentHud(options: {
   kind: InstrumentKind
   initialState: ExplorerState
   toggle: HTMLButtonElement
   onPlay?: () => void
-  onNoteClick?: (note: PitchClass) => void
+  onNoteClick?: (position: GuitarPosition) => void
   coordinator: HudCoordinator
 }): InstrumentHud {
   const { kind, toggle, coordinator } = options
@@ -62,8 +62,9 @@ export function mountInstrumentHud(options: {
       event.preventDefault()
       if (event.repeat) return
     }
-    const note = Number(target.getAttribute('data-guitar-note'))
-    if (Number.isInteger(note) && note >= 0 && note < 12) options.onNoteClick?.(note as PitchClass)
+    const position = guitarNotesForState(currentState).find(position =>
+      `${position.string}-${position.fret}` === target.getAttribute('data-guitar-position'))
+    if (position) options.onNoteClick?.(position)
   }
   content.addEventListener('click', activate)
   content.addEventListener('keydown', activate)
@@ -103,12 +104,13 @@ export function mountInstrumentHud(options: {
 
   let currentState = options.initialState
   const soundingNotes = new Set<PitchClass>()
+  let soundingPosition: GuitarPosition | undefined
   let destroyed = false
   const render = () => {
     if (destroyed) return
     const focused = document.activeElement
     const position = focused && content.contains(focused) ? focused.getAttribute('data-guitar-position') : null
-    content.innerHTML = renderInstrumentSvg(kind, currentState, soundingNotes)
+    content.innerHTML = renderInstrumentSvg(kind, currentState, soundingNotes, soundingPosition)
     if (position) content.querySelector<SVGElement>(`[data-guitar-position="${position}"][data-guitar-note]`)?.focus()
     legend.textContent = instrumentRootLegend(currentState)
   }
@@ -119,23 +121,27 @@ export function mountInstrumentHud(options: {
       currentState = state
       render()
     },
-    startNote(note) {
+    startNote(note, position) {
       if (destroyed || soundingNotes.has(note)) return
+      soundingPosition = position
       soundingNotes.add(note)
       render()
     },
     endNote(note) {
       if (destroyed || !soundingNotes.delete(note)) return
+      soundingPosition = undefined
       render()
     },
     clearPlayback() {
       if (destroyed || soundingNotes.size === 0) return
+      soundingPosition = undefined
       soundingNotes.clear()
       render()
     },
     destroy() {
       if (destroyed) return
       destroyed = true
+      soundingPosition = undefined
       soundingNotes.clear()
       content.removeEventListener('click', activate)
       content.removeEventListener('keydown', activate)

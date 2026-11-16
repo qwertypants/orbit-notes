@@ -134,7 +134,7 @@ it.each(['piano', 'guitar'] as const)('tracks %s playback across hiding, updates
 function noteTarget(content: FakeElement) {
   const note = new FakeElement()
   note.setAttribute('data-guitar-note', '4')
-  note.setAttribute('data-guitar-position', '0-0')
+  note.setAttribute('data-guitar-position', '6-0')
   const label = new FakeElement(), dot = new FakeElement()
   note.append(label, dot); content.append(note)
   return { note, label, dot }
@@ -144,7 +144,7 @@ it('delegates descendant label and dot clicks and rejects blank space', () => {
   const content = body.children[0].children[1]
   const { label, dot } = noteTarget(content)
   for (const target of [label, dot, content]) content.dispatch('click', { target })
-  expect(callback.mock.calls).toEqual([[4], [4]])
+  expect(callback.mock.calls).toEqual([[expect.objectContaining({ pitchClass: 4, midi: 40, string: 6, fret: 0 })], [expect.objectContaining({ pitchClass: 4, midi: 40, string: 6, fret: 0 })]])
 })
 it.each(['Enter', ' '])('activates %s, prevents default and suppresses repeats', key => {
   const callback = vi.fn(); setup('guitar', callback)
@@ -157,7 +157,7 @@ it.each(['Enter', ' '])('activates %s, prevents default and suppresses repeats',
   const other = new FakeKeyboardEvent('ArrowRight'); other.target = label
   content.dispatch('keydown', other)
   expect(other.preventDefault).not.toHaveBeenCalled()
-  expect(callback.mock.calls).toEqual([[4]])
+  expect(callback.mock.calls).toEqual([[expect.objectContaining({ pitchClass: 4, midi: 40, string: 6, fret: 0 })]])
 })
 it.each(['piano', 'guitar'] as const)('rejects piano activation and detached events after destroying %s', kind => {
   const callback = vi.fn(), { hud } = setup(kind, callback)
@@ -183,4 +183,15 @@ it('restores the same guitar position after SVG replacement during update and pl
     expect(current).not.toBe(previous)
     expect(document.activeElement).toBe(current)
   }
+})
+
+
+it('highlights the clicked low E position instead of the high E representative', () => {
+  const { hud } = setup('guitar')
+  const content = body.children[0].children[1]
+  hud.startNote(4, { pitchClass: 4, label: 'E', string: 6, fret: 0, midi: 40, selected: true, root: false })
+  expect(content.innerHTML).toMatch(/data-guitar-position="6-0"[^>]*data-playing="true"/)
+  expect(content.innerHTML).toMatch(/data-guitar-position="1-0"[^>]*data-playing="false"/)
+  hud.endNote(4)
+  expect(content.innerHTML).not.toContain('data-playing="true"')
 })

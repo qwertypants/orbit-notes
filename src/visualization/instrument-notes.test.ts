@@ -107,3 +107,11 @@ it.each(allPitches)('chooses the lowest-fret representative for pitch %i', pitch
   expect(picked.fret).toBe(Math.min(...positions.filter(p => p.pitchClass === pitch).map(p => p.fret)))
   expect(picked.string).toBe(Math.min(...positions.filter(p => p.pitchClass === pitch && p.fret === picked.fret).map(p => p.string)))
 })
+
+it('preserves the register of all six guitar strings through fret four', () => {
+  const positions = guitarNotesForState(stateWith(...allPitches))
+  expect(positions.map(position => position.midi)).toEqual([
+    64, 65, 66, 67, 68, 59, 60, 61, 62, 63, 55, 56, 57, 58, 59,
+    50, 51, 52, 53, 54, 45, 46, 47, 48, 49, 40, 41, 42, 43, 44,
+  ])
+})

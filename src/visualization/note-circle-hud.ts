@@ -21,7 +21,7 @@ export function mountNoteCircleHud(options: {
   anchor: HTMLElement
   initialState: ExplorerState
   onNoteToggle: (note: PitchClass) => void
-  onRelativeMinorSelect?: (root: PitchClass) => void
+  onRelativeMinorSelect?: (root: PitchClass | undefined) => void
   onPlay: () => void
   coordinator: HudCoordinator
 }): NoteCircleHud {

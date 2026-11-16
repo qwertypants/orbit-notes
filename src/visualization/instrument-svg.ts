@@ -1,7 +1,7 @@
 import type { PitchClass } from '../theory/music-theory.ts'
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
 import { noteLabelForState } from '../theory/learning-summary.ts'
-import { guitarPlaybackPosition, guitarNotesForState, pianoNotesForState, type InstrumentKind } from './instrument-notes.ts'
+import { guitarPlaybackPosition, guitarNotesForState, pianoNotesForState, type GuitarPosition, type InstrumentKind } from './instrument-notes.ts'
 
 function escapeXml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -44,11 +44,11 @@ function renderPiano(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass
   return `<svg class="instrument-svg instrument-svg--piano" viewBox="0 0 224 76" role="img" aria-label="Piano pitch-class reference, C through C, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}."><title>Piano pitch-class reference</title><desc>Pitch classes across C–C, not the register or voicing of playback. Selected notes: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}.</desc>${white}${black}</svg>`
 }
 
-function renderGuitar(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>): string {
+function renderGuitar(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>, soundingPosition?: GuitarPosition): string {
   const sounding = [...soundingNotes].map(note => noteLabelForState(state, note)).join(', ') || 'none'
   const positions = guitarNotesForState(state)
   const playingPositions = new Set([...soundingNotes].flatMap(note => {
-    const position = guitarPlaybackPosition(positions, note)
+    const position = soundingPosition?.pitchClass === note ? soundingPosition : guitarPlaybackPosition(positions, note)
     return position ? [`${position.string}-${position.fret}`] : []
   }))
   const rows = positions.filter((position) => position.fret === 0).map((open) => {
@@ -71,6 +71,6 @@ function renderGuitar(state: ExplorerState, soundingNotes: ReadonlySet<PitchClas
   return `<svg class="instrument-svg instrument-svg--guitar" viewBox="-5 0 229 162" role="group" aria-label="Standard tuning guitar, open strings through fret 4, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}."><title>Standard tuning guitar reference</title><desc>Note locations in standard tuning, frets 0–4; not a chord fingering. Top: high E, string 1. Bottom: low E, string 6. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}. Selected positions: ${positions.filter((position) => position.selected).map((position) => `string ${position.string}, fret ${position.fret}, ${position.label}`).join('; ') || 'none'}.</desc>${fretLabels}${strings}<line class="guitar-nut" x1="44" y1="28" x2="44" y2="148"/>${frets}${rows}</svg>`
 }
 
-export function renderInstrumentSvg(kind: InstrumentKind, state: ExplorerState, soundingNotes: ReadonlySet<PitchClass> = new Set()): string {
-  return kind === 'piano' ? renderPiano(state, soundingNotes) : renderGuitar(state, soundingNotes)
+export function renderInstrumentSvg(kind: InstrumentKind, state: ExplorerState, soundingNotes: ReadonlySet<PitchClass> = new Set(), soundingPosition?: GuitarPosition): string {
+  return kind === 'piano' ? renderPiano(state, soundingNotes) : renderGuitar(state, soundingNotes, soundingPosition)
 }

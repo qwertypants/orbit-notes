@@ -22,9 +22,11 @@ export function createExplorerState(selection: TopicSelection): ExplorerState {
 }
 
 /** Select an inner-ring key without changing the outer major root or mode. */
-export function selectRelativeMinor(state: ExplorerState, minorRoot: PitchClass): ExplorerState {
+export function selectRelativeMinor(state: ExplorerState, minorRoot: PitchClass | undefined): ExplorerState {
   if (state.selection.topic !== 'fifths') return state
-  return createExplorerState({ ...state.selection, minorRoot })
+  return createExplorerState(minorRoot === undefined
+    ? { topic: 'fifths', root: state.selection.root }
+    : { ...state.selection, minorRoot })
 }
 
 export function toggleExplorerNote(state: ExplorerState, note: PitchClass): ExplorerState {

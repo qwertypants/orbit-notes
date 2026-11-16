@@ -61,3 +61,12 @@ describe('relative minor selection', () => {
     expect(createExplorerState({ topic: 'fifths', root: 0 }).activeNotes).toEqual([0, 7, 5])
   })
 })
+
+
+it('resets a minor selection to the outer major root and its fifth neighbors', () => {
+  const minor = createExplorerState({ topic: 'fifths', root: 2, minorRoot: 11 })
+  const reset = selectRelativeMinor(minor, undefined)
+  expect(reset.selection).toStrictEqual({ topic: 'fifths', root: 2 })
+  expect(reset.activeNotes).toEqual([2, 9, 7])
+  expect(reset.resolved.root).toBe(2)
+})

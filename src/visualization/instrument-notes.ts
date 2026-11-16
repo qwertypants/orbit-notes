@@ -10,7 +10,7 @@ type InstrumentNote = {
   root: boolean
 }
 export type PianoKey = InstrumentNote & { index: number; black: boolean }
-export type GuitarPosition = InstrumentNote & { string: number; fret: number }
+export type GuitarPosition = InstrumentNote & { string: number; fret: number; midi: number }
 
 function describe(state: ExplorerState, pitchClass: PitchClass): InstrumentNote {
   const selected = state.activeNotes.includes(pitchClass)
@@ -31,11 +31,12 @@ export function pianoNotesForState(state: ExplorerState): PianoKey[] {
 }
 
 export function guitarNotesForState(state: ExplorerState): GuitarPosition[] {
-  return ([4, 11, 7, 2, 9, 4] as const).flatMap((open, row) =>
+  return ([64, 59, 55, 50, 45, 40] as const).flatMap((open, row) =>
     Array.from({ length: 5 }, (_, fret) => ({
       ...describe(state, ((open + fret) % 12) as PitchClass),
       string: row + 1,
       fret,
+      midi: open + fret,
     })))
 }
 

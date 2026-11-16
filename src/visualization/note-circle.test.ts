@@ -187,3 +187,28 @@ describe('relative minor circle rendering', () => {
     expect(inner).not.toHaveBeenCalled()
   })
 })
+
+
+it('lets the minor-key placeholder reset the selection, including with Home', async () => {
+  const listeners = new Map<string, (event: { key: string; preventDefault(): void }) => void>()
+  const select = {
+    className: '', value: '', hidden: false, selectedIndex: 1,
+    options: Array.from({ length: 13 }),
+    setAttribute() {}, append() {}, remove() {},
+    addEventListener(name: string, listener: (event: { key: string; preventDefault(): void }) => void) { listeners.set(name, listener) },
+    dispatchEvent() {
+      this.value = this.selectedIndex === 0 ? '' : '9'
+      listeners.get('change')?.({ key: '', preventDefault() {} })
+      return true
+    },
+  }
+  vi.stubGlobal('document', { createElement: () => select })
+  const { inner } = await mount(createExplorerState({ topic: 'fifths', root: 0, minorRoot: 9 }))
+  select.value = ''
+  listeners.get('change')?.({ key: '', preventDefault() {} })
+  expect(inner).toHaveBeenLastCalledWith(undefined)
+  select.selectedIndex = 1
+  listeners.get('keydown')?.({ key: 'Home', preventDefault() {} })
+  expect(select.selectedIndex).toBe(0)
+  expect(inner).toHaveBeenLastCalledWith(undefined)
+})

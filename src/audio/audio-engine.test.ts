@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { activeNotesInOrder, createExplorerState, toggleExplorerNote } from '../explorer-state.ts'
-import { disposeAudio, playNotes, readSpectrum, stopPlayback } from './audio-engine.ts'
+import { disposeAudio, playGuitarNote, playNotes, readSpectrum, stopPlayback } from './audio-engine.ts'
 
 const audio = vi.hoisted(() => ({
   start: vi.fn<() => Promise<void>>(),
+  loaded: vi.fn<() => Promise<void>>(),
+  sampler: vi.fn(),
   attack: vi.fn(),
   noteRelease: vi.fn(),
   release: vi.fn(),
@@ -17,7 +19,16 @@ const audio = vi.hoisted(() => ({
 
 vi.mock('tone', () => ({
   start: audio.start,
+  loaded: audio.loaded,
   Synth: class {},
+  Sampler: class {
+    constructor(...args: unknown[]) { audio.sampler(...args) }
+    connect(...args: unknown[]) { audio.connect(...args); return this }
+    triggerAttack(...args: unknown[]) { audio.attack(...args); return this }
+    triggerRelease(...args: unknown[]) { audio.noteRelease(...args); return this }
+    releaseAll() { audio.release(); return this }
+    dispose() { audio.dispose(); return this }
+  },
   PolySynth: class {
     constructor(...args: unknown[]) { audio.construct(...args) }
     connect(...args: unknown[]) { audio.connect(...args); return this }
@@ -38,6 +49,7 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.clearAllMocks()
   audio.start.mockResolvedValue(undefined)
+  audio.loaded.mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -299,5 +311,34 @@ describe('selected-note playback', () => {
     const heard = audio.attack.mock.calls.map(([pitch]) => pitch)
     expect(heard).toHaveLength(12)
     expect(heard.every((pitch) => typeof pitch === 'string' && pitch.endsWith('4'))).toBe(true)
+  })
+})
+
+
+describe('guitar position playback', () => {
+  it.each([[40, 'E2'], [45, 'A2'], [50, 'D3'], [55, 'G3'], [59, 'B3'], [64, 'E4'], [48, 'C3'], [60, 'C4'], [68, 'G#4']] as const)(
+    'plucks MIDI %i as %s with the guitar sampler', async (midi, pitch) => {
+      const start = vi.fn(), end = vi.fn()
+      expect(await playGuitarNote(midi, start, end)).toBe(true)
+      expect(audio.sampler).toHaveBeenCalledWith(expect.objectContaining({ baseUrl: '/audio/guitar-nylon/' }))
+      expect(audio.attack).toHaveBeenCalledWith(pitch)
+      expect(start).toHaveBeenCalledOnce()
+      vi.advanceTimersByTime(1000)
+      expect(audio.noteRelease).toHaveBeenCalledWith(pitch)
+      expect(end).toHaveBeenCalledOnce()
+    })
+
+  it('cancels a pluck while guitar samples are loading', async () => {
+    let loaded!: () => void
+    audio.loaded.mockImplementationOnce(() => new Promise(resolve => { loaded = resolve }))
+    const start = vi.fn(), end = vi.fn()
+    const pending = playGuitarNote(40, start, end)
+    await Promise.resolve()
+    stopPlayback()
+    loaded()
+    expect(await pending).toBe(false)
+    expect(audio.attack).not.toHaveBeenCalled()
+    expect(start).not.toHaveBeenCalled()
+    expect(end).not.toHaveBeenCalled()
   })
 })

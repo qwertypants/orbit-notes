@@ -23,6 +23,7 @@ import { mountNoteStaff, type NoteStaff } from './visualization/note-staff.ts'
 import { setStaffVisibility } from './visualization/staff-visibility.ts'
 import { mountExplorerMotion } from './visualization/explorer-motion.ts'
 import { mountInstrumentHud, type InstrumentHud } from './visualization/instrument-hud.ts'
+import type { GuitarPosition } from './visualization/instrument-notes.ts'
 import { createHudCoordinator } from './visualization/hud-coordinator.ts'
 import { mountOceanBackground } from './visualization/ocean-background.ts'
 
@@ -325,7 +326,7 @@ function topicName(topic: TopicId): string {
 function syncPlaybackChoice(resetForTopic = false): void {
   const topic = selectedTopic()
   if (resetForTopic) {
-    const defaultMode = topic === 'chords' ? 'together' : 'sequence'
+    const defaultMode = topic === 'chords' || topic === 'fifths' ? 'together' : 'sequence'
     togetherInput.checked = defaultMode === 'together'
     sequenceInput.checked = defaultMode === 'sequence'
     patternInputs.find((input) => input.value === 'once')!.checked = true
@@ -384,8 +385,8 @@ if (savedPreferences) {
       button.setAttribute('aria-pressed', String(button.dataset.preset === preset))
     })
   }
-  togetherInput.checked = savedPreferences.playback === 'together'
-  sequenceInput.checked = savedPreferences.playback === 'sequence'
+  togetherInput.checked = activeTopic === 'fifths' || savedPreferences.playback === 'together'
+  sequenceInput.checked = !togetherInput.checked
   patternInputs.forEach(input => { input.checked = input.value === savedPreferences.pattern })
   syncPlaybackChoice()
   theoryPanel.open = savedPreferences.theoryOpen
@@ -412,9 +413,9 @@ function toggleCircleNote(note: PitchClass): void {
   renderSelection()
 }
 
-function selectMinor(root: PitchClass): void {
+function selectMinor(root: PitchClass | undefined): void {
   explorerState = selectRelativeMinor(explorerState, root)
-  rootSelect.selectedIndex = root
+  rootSelect.selectedIndex = explorerState.resolved.root
   syncRootSteps()
   stopCurrentPlayback('Selection changed. Press Play to hear it.')
   renderSelection()
@@ -552,8 +553,8 @@ noteButtons.addEventListener('click', (event) => {
 
 renderTraditionChoices()
  pianoHud = mountInstrumentHud({ kind: 'piano', onPlay: () => playButton.click(), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#piano-toggle')!, coordinator: hudCoordinator })
-guitarHud = mountInstrumentHud({ kind: 'guitar', onPlay: () => playButton.click(), onNoteClick: (note) => void playStaffNote(note), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#guitar-toggle')!, coordinator: hudCoordinator })
-staff = mountNoteStaff(staffHost, explorerState, { onNoteClick: (note) => void playStaffNote(note) })
+guitarHud = mountInstrumentHud({ kind: 'guitar', onPlay: () => playButton.click(), onNoteClick: (position) => void playIndividualNote(position.pitchClass, position), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#guitar-toggle')!, coordinator: hudCoordinator })
+staff = mountNoteStaff(staffHost, explorerState, { onNoteClick: (note) => void playIndividualNote(note) })
 staffPanel.hidden = true
 staffToggle.addEventListener('click', () => {
   const visible = staffToggle.getAttribute('aria-pressed') !== 'true'
@@ -620,7 +621,7 @@ void import('./visualization/note-circle.ts').then(({ mountNoteCircle }) => {
   audioStatus.textContent = 'The note circle could not load. Use the note buttons to explore.'
 })
 
-function handlePlaybackNoteStart(note: PitchClass): void {
+function handlePlaybackNoteStart(note: PitchClass, guitarPosition?: GuitarPosition): void {
   const startedAtMs = performance.now()
   if (circle) circle.pulseNote(note)
   else if (!circleLoadFailed) pendingNotePulses.push({ note, startedAtMs })
@@ -628,7 +629,7 @@ function handlePlaybackNoteStart(note: PitchClass): void {
   else pendingHudNotePulses.push({ note, startedAtMs })
   staff?.startNote(note)
   pianoHud?.startNote(note)
-  guitarHud?.startNote(note)
+  guitarHud?.startNote(note, guitarPosition)
   motion?.pulseNote(note)
   ocean?.pulseNote(note)
 }
@@ -639,24 +640,28 @@ function handlePlaybackNoteEnd(note: PitchClass): void {
   guitarHud?.endNote(note)
 }
 
-async function playStaffNote(note: PitchClass): Promise<void> {
+async function playIndividualNote(note: PitchClass, guitarPosition?: GuitarPosition): Promise<void> {
   stopCurrentPlayback()
   const request = ++playRequest
   playButton.disabled = true
   circlePlayButton.disabled = true
   audioStatus.textContent = 'Waking up the sound…'
   try {
-    const { playNotes } = await audioModule()
+    const { playNotes, playGuitarNote } = await audioModule()
     if (request !== playRequest) return
-    const started = await playNotes(
-      [note],
-      'sequence',
-      'ascending',
-      handlePlaybackNoteStart,
-      soundSelect.value as SoundType,
-      'once',
-      handlePlaybackNoteEnd,
-    )
+    const started = guitarPosition
+      ? await playGuitarNote(guitarPosition.midi,
+        () => handlePlaybackNoteStart(note, guitarPosition),
+        () => handlePlaybackNoteEnd(note))
+      : await playNotes(
+        [note],
+        'sequence',
+        'ascending',
+        handlePlaybackNoteStart,
+        soundSelect.value as SoundType,
+        'once',
+        handlePlaybackNoteEnd,
+      )
     if (request !== playRequest || !started) return
     audioStatus.textContent = `Playing ${noteLabelForState(explorerState, note)}.`
   } catch {
