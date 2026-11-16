@@ -10,6 +10,7 @@ const toneNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', '
 const sequenceStepMs = 280
 const sequenceHoldMs = 240
 const chordHoldMs = 1000
+const releaseSeconds = 1
 const samples = {
   piano: { C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', A4: 'A4.mp3', C5: 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3', C6: 'C6.mp3' },
   guitar: { 'C#4': 'Cs4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', A4: 'A4.mp3', 'C#5': 'Cs5.mp3', E5: 'E5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3' },
@@ -45,10 +46,10 @@ function instrument(sound: SoundType): Voice {
     currentSound = sound
     analyser = new Tone.Analyser({ type: 'fft', size: 128, smoothing: 0.8 })
     synth = sound === 'piano' || sound === 'guitar'
-      ? new Tone.Sampler({ urls: samples[sound], baseUrl: `${import.meta.env.BASE_URL}audio/${sound === 'guitar' ? 'guitar-nylon' : 'piano'}/`, release: 0.3, volume: -8 })
+      ? new Tone.Sampler({ urls: samples[sound], baseUrl: `${import.meta.env.BASE_URL}audio/${sound === 'guitar' ? 'guitar-nylon' : 'piano'}/`, release: releaseSeconds, volume: -8 })
       : new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: sound },
-      envelope: { attack: 0.02, decay: 0.1, sustain: 0.55, release: 0.3 },
+      envelope: { attack: 0.02, decay: 0.1, sustain: 0.55, release: releaseSeconds },
       volume: -12,
     })
     synth.connect(analyser)
