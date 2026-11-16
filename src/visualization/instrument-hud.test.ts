@@ -22,7 +22,7 @@ class FakeElement {
   addEventListener(name: string, fn: (event: any) => void) { const set = this.listeners.get(name) ?? new Set(); set.add(fn); this.listeners.set(name, set) }
   removeEventListener(name: string, fn: (event: any) => void) { this.listeners.get(name)?.delete(fn) }
   contains(target: FakeElement): boolean { return target === this || this.children.some(child => child.contains(target)) }
-  closest(selector: string): FakeElement | null { return selector === '[data-guitar-note]' && this.attributes.has('data-guitar-note') ? this : this.parent?.closest(selector) ?? null }
+  closest(selector: string): FakeElement | null { return ((selector === '[data-guitar-note]' && this.attributes.has('data-guitar-note')) || (selector === '[data-piano-note]' && this.attributes.has('data-piano-note'))) ? this : this.parent?.closest(selector) ?? null }
   querySelector(selector: string): FakeElement | null { return this.children.find(child => selector.includes(`"${child.getAttribute('data-guitar-position')}"`) && child.attributes.has('data-guitar-note')) ?? null }
   focus() { (document as unknown as { activeElement: FakeElement }).activeElement = this }
   dispatch(name: string, event: any) { this.listeners.get(name)?.forEach(fn => fn(event)) }
@@ -38,14 +38,14 @@ vi.stubGlobal('document', { body, createElement: () => new FakeElement() })
 afterEach(() => { body.children = [] })
 afterEach(() => { vi.restoreAllMocks() })
 
-function setup(kind: 'piano' | 'guitar', onNoteClick = vi.fn()) {
+function setup(kind: 'piano' | 'guitar', onNoteClick = vi.fn(), onPianoNoteClick = vi.fn()) {
   const toggle = new FakeElement() as unknown as HTMLButtonElement
   let registration: HudRegistration | undefined
   const coordinator = { register: vi.fn(() => {
     registration = { setVisible: vi.fn(), destroy: vi.fn() }
     return registration
   }), destroy: vi.fn() } as unknown as HudCoordinator
-  const hud = mountInstrumentHud({ kind, initialState: createExplorerState({ topic: 'fifths', root: 0 }), toggle, coordinator, onNoteClick })
+  const hud = mountInstrumentHud({ kind, initialState: createExplorerState({ topic: 'fifths', root: 0 }), toggle, coordinator, onNoteClick, onPianoNoteClick })
   return { toggle: toggle as unknown as FakeElement, hud, coordinator, get registration() { return registration! } }
 }
 
@@ -194,4 +194,31 @@ it('highlights the clicked low E position instead of the high E representative',
   expect(content.innerHTML).toMatch(/data-guitar-position="1-0"[^>]*data-playing="false"/)
   hud.endNote(4)
   expect(content.innerHTML).not.toContain('data-playing="true"')
+})
+
+
+it.each([0, 1, 12])('plays highlighted piano key %s through its key and label', index => {
+  const callback = vi.fn(), { hud } = setup('piano', vi.fn(), callback)
+  hud.update({ ...createExplorerState({ topic: 'fifths', root: 0 }), activeNotes: [0, 1] })
+  const content = body.children[0].children[1]
+  const key = new FakeElement(), label = new FakeElement()
+  key.setAttribute('data-piano-note', String(index % 12))
+  key.setAttribute('data-key-index', String(index))
+  key.append(label); content.append(key)
+  for (const target of [key, label, content]) content.dispatch('click', { target })
+  expect(callback.mock.calls).toEqual([[index % 12], [index % 12]])
+  for (const name of ['Enter', ' ']) {
+    const event = new FakeKeyboardEvent(name); event.target = key
+    content.dispatch('keydown', event)
+    expect(event.preventDefault).toHaveBeenCalledOnce()
+    const repeat = new FakeKeyboardEvent(name, true); repeat.target = key
+    content.dispatch('keydown', repeat)
+  }
+  expect(callback).toHaveBeenCalledTimes(4)
+  hud.update({ ...createExplorerState({ topic: 'fifths', root: 0 }), activeNotes: [] })
+  content.dispatch('click', { target: key })
+  expect(callback).toHaveBeenCalledTimes(4)
+  hud.destroy()
+  content.dispatch('click', { target: key })
+  expect(callback).toHaveBeenCalledTimes(4)
 })

@@ -1,7 +1,7 @@
 import type { PitchClass } from '../theory/music-theory.ts'
 import { activeNotesInOrder, type ExplorerState } from '../explorer-state.ts'
 import { noteLabelForState } from '../theory/learning-summary.ts'
-import { guitarPlaybackPosition, guitarNotesForState, pianoNotesForState, type GuitarPosition, type InstrumentKind } from './instrument-notes.ts'
+import { guitarPlaybackPosition, guitarNotesForState, pianoNotesForState, type GuitarPosition, type InstrumentKind, type PianoKey } from './instrument-notes.ts'
 
 function escapeXml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -24,6 +24,12 @@ function labelFit(label: string, width: number): string {
   return label.length > 2 ? ` textLength="${width}" lengthAdjust="spacingAndGlyphs"` : ''
 }
 
+function pianoControl(key: PianoKey): string {
+  return key.selected
+    ? ` data-piano-note="${key.pitchClass}" role="button" tabindex="0" aria-label="Play ${escapeXml(key.label)}"`
+    : ''
+}
+
 function renderPiano(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>): string {
   const sounding = [...soundingNotes].map(note => noteLabelForState(state, note)).join(', ') || 'none'
   const keys = pianoNotesForState(state)
@@ -33,15 +39,15 @@ function renderPiano(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass
     const key = keys[index]
     const x = position * 28
     const label = key.selected ? `<circle class="piano-selection-marker" cx="${x + 14}" cy="63" r="10"/><text class="instrument-note-label" x="${x + 14}" y="67" text-anchor="middle">${escapeXml(key.label)}</text>` : ''
-    return `<g data-key-index="${index}" data-selected="${key.selected}" data-root="${key.root}" data-playing="${soundingNotes.has(key.pitchClass) && key.index < 12}"><rect class="piano-key piano-key--white" x="${x}" y="1" width="28" height="74"/>${label}</g>`
+    return `<g data-key-index="${index}"${pianoControl(key)} data-selected="${key.selected}" data-root="${key.root}" data-playing="${soundingNotes.has(key.pitchClass) && key.index < 12}"><rect class="piano-key piano-key--white" x="${x}" y="1" width="28" height="74"/>${label}</g>`
   }).join('')
   const black = blackIndices.map((index, position) => {
     const key = keys[index]
     const x = [17.5, 45.5, 101.5, 129.5, 157.5][position]
     const label = key.selected ? `<circle class="piano-selection-marker" cx="${x + 10.5}" cy="28" r="10"/><text class="instrument-note-label" x="${x + 10.5}" y="32" text-anchor="middle"${labelFit(key.label, 18)}>${escapeXml(key.label)}</text>` : ''
-    return `<g data-key-index="${index}" data-selected="${key.selected}" data-root="${key.root}" data-playing="${soundingNotes.has(key.pitchClass) && key.index < 12}"><rect class="piano-key piano-key--black" x="${x}" y="1" width="21" height="45"/>${label}</g>`
+    return `<g data-key-index="${index}"${pianoControl(key)} data-selected="${key.selected}" data-root="${key.root}" data-playing="${soundingNotes.has(key.pitchClass) && key.index < 12}"><rect class="piano-key piano-key--black" x="${x}" y="1" width="21" height="45"/>${label}</g>`
   }).join('')
-  return `<svg class="instrument-svg instrument-svg--piano" viewBox="0 0 224 76" role="img" aria-label="Piano pitch-class reference, C through C, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}."><title>Piano pitch-class reference</title><desc>Pitch classes across C–C, not the register or voicing of playback. Selected notes: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}.</desc>${white}${black}</svg>`
+  return `<svg class="instrument-svg instrument-svg--piano" viewBox="0 0 224 76" role="group" aria-label="Piano pitch-class reference, C through C, selected: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}."><title>Piano pitch-class reference</title><desc>Pitch classes across C–C, not the register or voicing of playback. Selected notes: ${escapeXml(summary(state))}. ${escapeXml(instrumentRootLegend(state))} Sounding: ${escapeXml(sounding)}.</desc>${white}${black}</svg>`
 }
 
 function renderGuitar(state: ExplorerState, soundingNotes: ReadonlySet<PitchClass>, soundingPosition?: GuitarPosition): string {

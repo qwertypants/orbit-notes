@@ -552,7 +552,7 @@ noteButtons.addEventListener('click', (event) => {
 })
 
 renderTraditionChoices()
- pianoHud = mountInstrumentHud({ kind: 'piano', onPlay: () => playButton.click(), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#piano-toggle')!, coordinator: hudCoordinator })
+ pianoHud = mountInstrumentHud({ kind: 'piano', onPianoNoteClick: (note) => void playIndividualNote(note), onPlay: () => playButton.click(), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#piano-toggle')!, coordinator: hudCoordinator })
 guitarHud = mountInstrumentHud({ kind: 'guitar', onPlay: () => playButton.click(), onNoteClick: (position) => void playIndividualNote(position.pitchClass, position), initialState: explorerState, toggle: document.querySelector<HTMLButtonElement>('#guitar-toggle')!, coordinator: hudCoordinator })
 staff = mountNoteStaff(staffHost, explorerState, { onNoteClick: (note) => void playIndividualNote(note) })
 staffPanel.hidden = true

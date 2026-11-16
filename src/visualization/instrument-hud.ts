@@ -1,7 +1,7 @@
 import type { PitchClass } from '../theory/music-theory.ts'
 import type { ExplorerState } from '../explorer-state.ts'
 import { instrumentRootLegend, renderInstrumentSvg } from './instrument-svg.ts'
-import { guitarNotesForState, type GuitarPosition, type InstrumentKind } from './instrument-notes.ts'
+import { guitarNotesForState, pianoNotesForState, type GuitarPosition, type InstrumentKind } from './instrument-notes.ts'
 import type { HudCoordinator, HudRegistration } from './hud-coordinator.ts'
 
 export type InstrumentHud = { setPlaybackActive(active: boolean): void; update(state: ExplorerState): void; startNote(note: PitchClass, position?: GuitarPosition): void; endNote(note: PitchClass): void; clearPlayback(): void; destroy(): void }
@@ -12,6 +12,7 @@ export function mountInstrumentHud(options: {
   toggle: HTMLButtonElement
   onPlay?: () => void
   onNoteClick?: (position: GuitarPosition) => void
+  onPianoNoteClick?: (note: PitchClass) => void
   coordinator: HudCoordinator
 }): InstrumentHud {
   const { kind, toggle, coordinator } = options
@@ -54,13 +55,19 @@ export function mountInstrumentHud(options: {
   content.className = 'instrument-hud__content'
   content.innerHTML = renderInstrumentSvg(kind, options.initialState)
   const activate = (event: MouseEvent | KeyboardEvent) => {
-    if (kind !== 'guitar' || !(event.target instanceof Element)) return
-    const target = event.target.closest('[data-guitar-note]')
+    if (!(event.target instanceof Element)) return
+    const target = event.target.closest(kind === 'piano' ? '[data-piano-note]' : '[data-guitar-note]')
     if (!target || !content.contains(target)) return
     if (event instanceof KeyboardEvent) {
       if (event.key !== 'Enter' && event.key !== ' ') return
       event.preventDefault()
       if (event.repeat) return
+    }
+    if (kind === 'piano') {
+      const key = pianoNotesForState(currentState).find(key =>
+        key.selected && String(key.index) === target.getAttribute('data-key-index'))
+      if (key) options.onPianoNoteClick?.(key.pitchClass)
+      return
     }
     const position = guitarNotesForState(currentState).find(position =>
       `${position.string}-${position.fret}` === target.getAttribute('data-guitar-position'))
@@ -72,7 +79,7 @@ export function mountInstrumentHud(options: {
   scope.className = 'instrument-hud__scope'
   scope.textContent = kind === 'guitar'
     ? 'Note locations · standard tuning · frets 0–4; not a chord fingering. Top: high E (1); bottom: low E (6).'
-    : 'Orange note badges mark selected keys. Pitch classes C–C; playback may use another octave.'
+    : 'Click a highlighted key to hear its note. Pitch classes C–C; playback may use another octave.'
   scope.textContent += ' Cyan with a dashed outline: sounding note.'
   const legend = document.createElement('p')
   legend.className = 'instrument-hud__legend'
@@ -109,9 +116,11 @@ export function mountInstrumentHud(options: {
   const render = () => {
     if (destroyed) return
     const focused = document.activeElement
-    const position = focused && content.contains(focused) ? focused.getAttribute('data-guitar-position') : null
+    const focusAttribute = kind === 'piano' ? 'data-key-index' : 'data-guitar-position'
+    const controlAttribute = kind === 'piano' ? 'data-piano-note' : 'data-guitar-note'
+    const position = focused && content.contains(focused) ? focused.getAttribute(focusAttribute) : null
     content.innerHTML = renderInstrumentSvg(kind, currentState, soundingNotes, soundingPosition)
-    if (position) content.querySelector<SVGElement>(`[data-guitar-position="${position}"][data-guitar-note]`)?.focus()
+    if (position) content.querySelector<SVGElement>(`[${focusAttribute}="${position}"][${controlAttribute}]`)?.focus()
     legend.textContent = instrumentRootLegend(currentState)
   }
   return {

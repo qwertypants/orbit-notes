@@ -15,7 +15,7 @@ it('renders piano and interactive guitar references with their complete position
   expect(piano.match(/data-selected="true"/g)).toHaveLength(2)
   expect(guitar.match(/data-selected="true"/g)).toHaveLength(2)
   for (const svg of [piano, guitar]) {
-    expect(svg).toContain(svg === piano ? 'role="img"' : 'role="group"')
+    expect(svg).toContain('role="group"')
     expect(svg).toContain('aria-label=')
     expect(svg).toContain('<title>')
     expect(svg).toContain('<desc>')
@@ -103,4 +103,18 @@ it('makes only labeled open and fretted guitar positions keyboard controls', () 
   expect(svg).toContain('Play E, string 2, fret 5'.replace('2, fret 5', '4, fret 2'))
   expect(svg).toMatch(/<g data-guitar-position="1-1"[^>]+\/>/)
   expect(renderInstrumentSvg('piano', stateWith(4))).not.toContain('data-guitar-note')
+})
+
+
+it('makes highlighted white and black piano keys accessible note controls', () => {
+  const svg = renderInstrumentSvg('piano', stateWith(0, 1))
+  const controls = [...svg.matchAll(/<g ([^>]*data-piano-note[^>]*)>/g)]
+  expect(controls).toHaveLength(3)
+  for (const [, attributes] of controls) {
+    expect(attributes).toContain('role="button" tabindex="0"')
+    expect(attributes).toMatch(/aria-label="Play (C|D♭)"/)
+    expect(attributes).toContain('data-selected="true"')
+  }
+  expect(svg).toMatch(/data-key-index="2"[^>]*data-selected="false"/)
+  expect(renderInstrumentSvg('piano', stateWith())).not.toContain('data-piano-note')
 })
