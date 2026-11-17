@@ -27,10 +27,17 @@ import type { GuitarPosition } from './visualization/instrument-notes.ts'
 import { createHudCoordinator } from './visualization/hud-coordinator.ts'
 import { mountOceanBackground } from './visualization/ocean-background.ts'
 
-if ('serviceWorker' in navigator) {
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: 'none' })
-      .then((registration) => registration.update())
+      .then((registration) => {
+        const checkForUpdate = () => { void registration.update().catch(() => {}) }
+        checkForUpdate()
+        window.addEventListener('online', checkForUpdate)
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') checkForUpdate()
+        })
+      })
       .catch(() => {})
   }, { once: true })
 }
