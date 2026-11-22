@@ -86,7 +86,6 @@ app.innerHTML = `
           <div id="topic-buttons" class="topic-buttons" role="group" aria-label="Choose a music topic">
             <button class="topic-button" type="button" data-topic="chords" aria-pressed="false">Chords</button>
             <button class="topic-button" type="button" data-topic="scales" aria-pressed="true">Scales</button>
-            <button class="topic-button" type="button" data-topic="arpeggios" aria-pressed="false">Arpeggios</button>
             <button class="topic-button" type="button" data-topic="fifths" aria-pressed="false">Fifths</button>
           </div>
         </div>
