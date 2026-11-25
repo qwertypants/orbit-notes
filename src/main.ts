@@ -1,5 +1,6 @@
 import { loadPreferences, savePreferences } from './preferences.ts'
 import { selectionSteps } from './theory/selection-steps.ts'
+import { scaleChords } from './theory/scale-chords.ts'
 import './styles.css'
 import { activeNotesInOrder, createExplorerState, selectRelativeMinor, toggleExplorerNote } from './explorer-state.ts'
 import {
@@ -538,7 +539,73 @@ function renderSelection(): void {
 function renderTheoryPanel(): void {
   const summary = createLearningSummary(explorerState)
   renderTheorySummary(theoryContent, summary, explorerState.selection.topic)
-  renderTraditionSummary(traditionSummary, summary)
+  const selection = explorerState.selection
+  const sourceSummary = 'scaleSource' in selection && selection.scaleSource
+    ? createLearningSummary(createExplorerState(selection.scaleSource)) : undefined
+  renderTraditionSummary(traditionSummary, sourceSummary ? {
+    ...sourceSummary, title: summary.title, selectedNotes: summary.selectedNotes, explanation: summary.explanation,
+  } : summary)
+  renderScaleChords(theoryContent)
+  renderScaleChords(traditionSummary)
+}
+
+function chooseTheorySelection(selection: TopicSelection): void {
+  activeTopic = selection.topic
+  culturalPattern = 'culturalPatternId' in selection
+    ? traditionPatterns.find(pattern => pattern.id === selection.culturalPatternId) : undefined
+  rootSelect.selectedIndex = selection.root
+  syncRootSteps()
+  populatePresets()
+  if ('preset' in selection) {
+    presetButtons.querySelectorAll<HTMLButtonElement>('button[data-preset]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.preset === selection.preset))
+    })
+  }
+  syncPlaybackChoice(true)
+  explorerState = createExplorerState(selection)
+  stopCurrentPlayback('Selection changed. Press Play to hear it.')
+  renderTraditionChoices()
+  renderSelection()
+}
+
+function renderScaleChords(container: HTMLElement): void {
+  const selection = explorerState.selection
+  const source = 'scaleSource' in selection && selection.scaleSource
+    ? selection.scaleSource : selection.topic === 'scales' ? { ...selection, topic: 'scales' as const }
+      : selection.topic === 'fifths' ? selection : undefined
+  if (!source) return
+  const chords = scaleChords(source)
+  if (!chords.length) return
+  const section = document.createElement('section')
+  const heading = document.createElement('h3')
+  heading.textContent = `Chords in ${createLearningSummary(createExplorerState(source)).title}`
+  const buttons = document.createElement('div')
+  buttons.className = 'tradition-buttons'
+  buttons.setAttribute('role', 'group')
+  buttons.setAttribute('aria-label', 'Chords in this scale')
+  for (const chord of chords) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'tradition-button'
+    button.textContent = chord.label
+    button.setAttribute('aria-pressed', String(selection.topic === 'chords' && 'preset' in selection && selection.root === chord.root && selection.preset === chord.preset))
+    button.addEventListener('click', () => {
+      chooseTheorySelection({ topic: 'chords', root: chord.root, preset: chord.preset, scaleSource: source })
+      container.querySelector<HTMLButtonElement>('[aria-label="Chords in this scale"] [aria-pressed="true"]')?.focus()
+    })
+    buttons.append(button)
+  }
+  const fullScale = document.createElement('button')
+  fullScale.type = 'button'
+  fullScale.className = 'tradition-button'
+  fullScale.textContent = 'Full scale'
+  fullScale.addEventListener('click', () => {
+    chooseTheorySelection(source)
+    container.querySelector<HTMLButtonElement>('[aria-label="Chords in this scale"] button')?.focus()
+  })
+  buttons.append(fullScale)
+  section.append(heading, buttons)
+  container.append(section)
 }
 
 function resetSelection(): void {

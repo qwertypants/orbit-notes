@@ -77,8 +77,12 @@ export const scalePresets = {
 
 export type ChordPreset = keyof typeof chordPresets
 export type ScalePreset = keyof typeof scalePresets
+export type ScaleChordSource =
+  | { topic: 'scales'; root: PitchClass; preset: ScalePreset }
+  | { topic: 'scales'; root: PitchClass; culturalPatternId: string }
+  | { topic: 'fifths'; root: PitchClass; minorRoot?: PitchClass }
 export type TopicSelection =
-  | { topic: 'chords' | 'arpeggios'; root: PitchClass; preset: ChordPreset }
+  | { topic: 'chords' | 'arpeggios'; root: PitchClass; preset: ChordPreset; scaleSource?: ScaleChordSource }
   | { topic: 'scales'; root: PitchClass; preset: ScalePreset }
   | { topic: 'scales' | 'arpeggios'; root: PitchClass; culturalPatternId: string }
   // root keeps the outer major selection; minorRoot selects an inner-ring key.
@@ -110,7 +114,7 @@ export type ResolvedTopic = {
 
 const intervalLabels = ['R', 'm2', 'M2', 'm3', 'M3', 'P4', 'TT', 'P5', 'm6', 'M6', 'm7', 'M7'] as const
 const intervalByDegree: Record<string, string> = {
-  '1': 'R', '2': 'M2', '♭3': 'm3', '3': 'M3', '4': 'P4', '♭5': 'd5', '♯4': 'TT',
+  '1': 'R', '♭2': 'm2', '2': 'M2', '♭3': 'm3', '3': 'M3', '4': 'P4', '♭5': 'd5', '♯4': 'TT',
   '5': 'P5', '♯5': 'A5', '♭6': 'm6', '6': 'M6', '♭7': 'm7', '7': 'M7',
 }
 

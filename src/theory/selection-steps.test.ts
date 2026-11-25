@@ -46,3 +46,13 @@ test('minor-key ladder measures degrees and steps from the minor root', () => {
     { note: 'D', degree: '♭7', semitones: 2, nextNote: 'E' },
   ])
 })
+
+test('Phrygian preserves its lowered degrees and transposes from C to E', () => {
+  const steps = selectionSteps(createExplorerState({ topic: 'scales', root: 0, culturalPatternId: 'western-phrygian-mode' }))
+  expect(steps.map(step => step.note)).toEqual(['C', 'D♭', 'E♭', 'F', 'G', 'A♭', 'B♭'])
+  expect(steps.map(step => step.degree)).toEqual(['1', '♭2', '♭3', '4', '5', '♭6', '♭7'])
+  expect(steps.map(step => step.semitones)).toEqual([1, 2, 2, 2, 1, 2, 2])
+  expect(steps[6].nextNote).toBe('C')
+  const transposed = selectionSteps(createExplorerState({ topic: 'scales', root: 4, culturalPatternId: 'western-phrygian-mode' }))
+  expect(transposed.map(step => step.note)).toEqual(['E', 'F', 'G', 'A', 'B', 'C', 'D'])
+})

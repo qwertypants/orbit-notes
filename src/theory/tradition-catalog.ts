@@ -69,6 +69,25 @@ export const traditionPatterns: readonly TraditionPattern[] = [
     ],
   },
   {
+    id: 'western-phrygian-mode',
+    traditionId: 'western-tonal-theory',
+    traditionName: 'Western tonal theory',
+    region: 'Western modal theory',
+    name: 'Phrygian Mode',
+    kind: 'scale',
+    intervals: [0, 1, 3, 5, 7, 8, 10],
+    degrees: ['1', '♭2', '♭3', '4', '5', '♭6', '♭7'],
+    context: 'Phrygian is a modern Western diatonic mode with a lowered second degree. Its ascending steps are half, whole, whole, whole, half, whole, whole. E Phrygian uses E–F–G–A–B–C–D.',
+    representationNote: 'This equal-tempered example is rooted at the selected app note; choosing another root transposes the mode.',
+    sources: [
+      {
+        title: 'Open Music Theory, Introduction to Diatonic Modes and the Chromatic Scale, Example 7',
+        url: 'https://viva.pressbooks.pub/openmusictheory/chapter/intro-to-diatonic-modes-and-the-chromatic-scale/',
+        supportsPattern: true,
+      },
+    ],
+  },
+  {
     id: 'bihor-hemitonic-pentatonic',
     traditionId: 'romanian-folklore',
     traditionName: 'Romanian folklore',

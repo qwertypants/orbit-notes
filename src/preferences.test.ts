@@ -31,6 +31,7 @@ describe('browser preferences', () => {
     { topic: 'chords', root: 11, preset: 'dominant7' },
     { topic: 'arpeggios', root: 4, preset: 'minor' },
     { topic: 'scales', root: 5, culturalPatternId: 'western-major-scale' },
+    { topic: 'chords', root: 5, preset: 'major', scaleSource: { topic: 'scales', root: 4, culturalPatternId: 'western-phrygian-mode' } },
   ])('restores selection %j', selection => {
     expect(loadPreferences(storage(saved({ selection })))?.state.selection).toEqual(selection)
   })

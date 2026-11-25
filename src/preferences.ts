@@ -40,7 +40,13 @@ function readSelection(value: unknown): TopicSelection | undefined {
     return { topic, root, culturalPatternId: pattern.id }
   }
   if (topic === 'scales' && ownKey(preset, scalePresets)) return { topic, root, preset }
-  if ((topic === 'chords' || topic === 'arpeggios') && ownKey(preset, chordPresets)) return { topic, root, preset }
+  if ((topic === 'chords' || topic === 'arpeggios') && ownKey(preset, chordPresets)) {
+    const source = record(value.scaleSource) && value.scaleSource.topic !== 'chords' && value.scaleSource.topic !== 'arpeggios'
+      ? readSelection(value.scaleSource) : undefined
+    const scaleSource = source?.topic === 'scales' ? { ...source, topic: 'scales' as const }
+      : source?.topic === 'fifths' ? source : undefined
+    return { topic, root, preset, ...(scaleSource ? { scaleSource } : {}) }
+  }
 }
 
 export function loadPreferences(storage?: PreferenceStorage): Preferences | undefined {
